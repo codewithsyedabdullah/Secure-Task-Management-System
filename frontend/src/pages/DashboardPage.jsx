@@ -4,12 +4,14 @@ import Navbar from '../components/Navbar';
 import TaskCard from '../components/TaskCard';
 import TaskModal from '../components/TaskModal';
 import TeamModal from '../components/TeamModal';
+import ReminderBanner from '../components/ReminderBanner';
 import { useAuth } from '../context/AuthContext';
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const [teams, setTeams] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [teamMembers, setTeamMembers] = useState([]); // members of selected team for assignee filter
   const [loading, setLoading] = useState(true);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showTeamModal, setShowTeamModal] = useState(false);
@@ -48,6 +50,16 @@ export default function DashboardPage() {
     fetchTasks();
   }, [fetchTasks]);
 
+  // Fetch members of selected team for the assignee filter
+  useEffect(() => {
+    if (filterTeam) {
+      api.get(`/teams/${filterTeam}`).then((res) => setTeamMembers(res.data.members || [])).catch(() => setTeamMembers([]));
+    } else {
+      setTeamMembers([]);
+      setFilterAssignee('');
+    }
+  }, [filterTeam]);
+
   const handleDeleteTask = async (id) => {
     if (!confirm('Delete this task?')) return;
     try {
@@ -74,8 +86,6 @@ export default function DashboardPage() {
     setFilterTeam(''); setFilterStatus(''); setFilterAssignee(''); setSearch('');
   };
 
-  const allMembers = teams.flatMap(t => []).filter(Boolean); // simplified — full members from team detail
-
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
@@ -87,6 +97,7 @@ export default function DashboardPage() {
       <Navbar />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <ReminderBanner />
         {/* Stats Row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
           {[
@@ -150,6 +161,14 @@ export default function DashboardPage() {
                   <option value="in_progress">In Progress</option>
                   <option value="done">Done</option>
                 </select>
+                {teamMembers.length > 0 && (
+                  <select value={filterAssignee} onChange={(e) => setFilterAssignee(e.target.value)} className="input sm:w-40">
+                    <option value="">All Assignees</option>
+                    {teamMembers.map((m) => (
+                      <option key={m.id} value={m.id}>{m.username}</option>
+                    ))}
+                  </select>
+                )}
                 <div className="flex gap-2">
                   {(filterTeam || filterStatus || filterAssignee || search) && (
                     <button onClick={clearFilters} className="btn-secondary text-sm whitespace-nowrap">Clear</button>
