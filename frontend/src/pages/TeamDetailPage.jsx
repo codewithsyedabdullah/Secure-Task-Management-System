@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../api';
 import Navbar from '../components/Navbar';
+import InviteModal from '../components/InviteModal';
 import { useAuth } from '../context/AuthContext';
 
 export default function TeamDetailPage() {
@@ -13,6 +14,7 @@ export default function TeamDetailPage() {
   const [addError, setAddError] = useState('');
   const [addLoading, setAddLoading] = useState(false);
   const [addSuccess, setAddSuccess] = useState('');
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   useEffect(() => {
     api.get(`/teams/${id}`)
@@ -88,7 +90,17 @@ export default function TeamDetailPage() {
 
         {/* Members */}
         <div className="card p-6">
-          <h2 className="font-semibold text-slate-800 mb-4">Members ({team.members?.length || 0})</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-slate-800">Members ({team.members?.length || 0})</h2>
+            {isCreator && (
+              <button
+                onClick={() => setShowInviteModal(true)}
+                className="text-sm text-brand-600 hover:text-brand-700 font-medium flex items-center gap-1"
+              >
+                ✉️ Invite via Email
+              </button>
+            )}
+          </div>
 
           {isCreator && (
             <form onSubmit={handleAddMember} className="mb-4 flex gap-2">
@@ -124,6 +136,13 @@ export default function TeamDetailPage() {
           </ul>
         </div>
       </div>
+      {showInviteModal && (
+        <InviteModal
+          teamId={id}
+          teamName={team.name}
+          onClose={() => setShowInviteModal(false)}
+        />
+      )}
     </div>
   );
 }
