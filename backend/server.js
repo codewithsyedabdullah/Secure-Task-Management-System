@@ -22,15 +22,12 @@ const app = express();
 
 // ─── Middleware ────────────────────────────────────────────────
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:5173',
-    'https://secure-task-management-system.vercel.app',
-  ],
+  origin: 'https://secure-task-management-system.vercel.app',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type'],
+  optionsSuccessStatus: 204,
 }));
-
 app.set('trust proxy', 1);
 
 app.use(session({
