@@ -8,11 +8,15 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/auth/me')
-      .then((res) => setUser(res.data.user))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
-  }, []);
+  if (!import.meta.env.VITE_API_URL) {
+    setLoading(false);
+    return;
+  }
+  api.get('/auth/me')
+    .then((res) => setUser(res.data.user))
+    .catch(() => setUser(null))
+    .finally(() => setLoading(false));
+}, []);
 
   const login = async (email, password) => {
     const res = await api.post('/auth/login', { email, password });
