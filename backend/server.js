@@ -21,22 +21,14 @@ const tasksRoutes = require('./routes/tasks');
 const app = express();
 
 // ─── Middleware ────────────────────────────────────────────────
-const allowedOrigins = [
-  'https://secure-task-management-system.vercel.app',
-  'http://localhost:5173',
-  'http://localhost:4173',
-];
 app.use(cors({
-<<<<<<< Updated upstream
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-=======
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-    callback(new Error('CORS blocked: ' + origin));
-  },
->>>>>>> Stashed changes
+  origin: 'https://secure-task-management-system.vercel.app',
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type'],
+  optionsSuccessStatus: 204,
 }));
+app.set('trust proxy', 1);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -47,8 +39,8 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: true,
+    sameSite: 'none',
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
   },
 }));

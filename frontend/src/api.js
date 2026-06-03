@@ -5,11 +5,14 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// Intercept 401s globally
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401 && window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+    if (
+      err.response?.status === 401 &&
+      window.location.pathname !== '/login' &&
+      window.location.pathname !== '/register'
+    ) {
       window.location.href = '/login';
     }
     return Promise.reject(err);
