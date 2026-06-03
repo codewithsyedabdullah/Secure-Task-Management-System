@@ -17,7 +17,8 @@ router.get('/', async (req, res) => {
              t.team_id, t.assigned_to, t.created_by, t.created_at, t.updated_at,
              teams.name AS team_name,
              assignee.username AS assignee_name,
-             creator.username AS creator_name
+             creator.username AS creator_name,
+             tm.role AS my_team_role
       FROM tasks t
       JOIN teams ON t.team_id = teams.id
       JOIN team_members tm ON t.team_id = tm.team_id AND tm.user_id = $1
@@ -87,12 +88,14 @@ router.post(
 
       // Fetch enriched task
       const enriched = await pool.query(
-        `SELECT t.*, teams.name AS team_name, u.username AS assignee_name, c.username AS creator_name
+        `SELECT t.*, teams.name AS team_name, u.username AS assignee_name, c.username AS creator_name,
+                tm2.role AS my_team_role
          FROM tasks t JOIN teams ON t.team_id = teams.id
+         JOIN team_members tm2 ON t.team_id = tm2.team_id AND tm2.user_id = $2
          LEFT JOIN users u ON t.assigned_to = u.id
          LEFT JOIN users c ON t.created_by = c.id
          WHERE t.id = $1`,
-        [result.rows[0].id]
+        [result.rows[0].id, req.user.id]
       );
 
       res.status(201).json(enriched.rows[0]);
@@ -172,12 +175,14 @@ router.put(
       );
 
       const enriched = await pool.query(
-        `SELECT t.*, teams.name AS team_name, u.username AS assignee_name, c.username AS creator_name
+        `SELECT t.*, teams.name AS team_name, u.username AS assignee_name, c.username AS creator_name,
+                tm2.role AS my_team_role
          FROM tasks t JOIN teams ON t.team_id = teams.id
+         JOIN team_members tm2 ON t.team_id = tm2.team_id AND tm2.user_id = $2
          LEFT JOIN users u ON t.assigned_to = u.id
          LEFT JOIN users c ON t.created_by = c.id
          WHERE t.id = $1`,
-        [result.rows[0].id]
+        [result.rows[0].id, req.user.id]
       );
       res.json(enriched.rows[0]);
     } catch (err) {

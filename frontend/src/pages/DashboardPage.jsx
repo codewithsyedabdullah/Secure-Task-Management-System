@@ -86,18 +86,24 @@ export default function DashboardPage() {
     setFilterTeam(''); setFilterStatus(''); setFilterAssignee(''); setSearch('');
   };
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Parse YYYY-MM-DD as local date (not UTC) to avoid timezone shift
+  const parseLocalDate = (dateStr) => {
+    const [year, month, day] = dateStr.split('T')[0].split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
+  const todayLocal = new Date();
+  todayLocal.setHours(0, 0, 0, 0);
 
   const overdueTasks = tasks.filter((t) => {
     if (!t.due_date || t.status === 'done') return false;
-    return new Date(t.due_date) < today;
+    return parseLocalDate(t.due_date) < todayLocal;
   });
 
   const dueSoonTasks = tasks.filter((t) => {
     if (!t.due_date || t.status === 'done') return false;
-    const due = new Date(t.due_date);
-    const diff = (due - today) / (1000 * 60 * 60 * 24);
+    const due = parseLocalDate(t.due_date);
+    const diff = (due - todayLocal) / (1000 * 60 * 60 * 24);
     return diff >= 0 && diff <= 2;
   });
 
