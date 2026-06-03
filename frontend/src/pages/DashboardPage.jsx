@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import TaskCard from '../components/TaskCard';
 import TaskModal from '../components/TaskModal';
 import TeamModal from '../components/TeamModal';
+import ReminderBanner from '../components/ReminderBanner';
 import { useAuth } from '../context/AuthContext';
 
 export default function DashboardPage() {
@@ -86,26 +87,11 @@ export default function DashboardPage() {
     setFilterTeam(''); setFilterStatus(''); setFilterAssignee(''); setSearch('');
   };
 
-  // Parse YYYY-MM-DD as local date (not UTC) to avoid timezone shift
-  const parseLocalDate = (dateStr) => {
-    const [year, month, day] = dateStr.split('T')[0].split('-').map(Number);
-    return new Date(year, month - 1, day);
-  };
-
-  const todayLocal = new Date();
-  todayLocal.setHours(0, 0, 0, 0);
-
-  const overdueTasks = tasks.filter((t) => {
-    if (!t.due_date || t.status === 'done') return false;
-    return parseLocalDate(t.due_date) < todayLocal;
-  });
-
-  const dueSoonTasks = tasks.filter((t) => {
-    if (!t.due_date || t.status === 'done') return false;
-    const due = parseLocalDate(t.due_date);
-    const diff = (due - todayLocal) / (1000 * 60 * 60 * 24);
-    return diff >= 0 && diff <= 2;
-  });
+  // All tasks (unfiltered) for reminders — fetch separately so filters don't hide reminders
+  const [allTasks, setAllTasks] = useState([]);
+  useEffect(() => {
+    api.get('/tasks').then((res) => setAllTasks(res.data)).catch(() => {});
+  }, [tasks]); // refresh when tasks change
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -119,42 +105,9 @@ export default function DashboardPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-        {/* Due Date Reminders */}
-        {!dismissedReminders && (overdueTasks.length > 0 || dueSoonTasks.length > 0) && (
-          <div className="mb-6 space-y-2">
-            {overdueTasks.length > 0 && (
-              <div className="flex items-start justify-between gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-                <div className="flex items-start gap-2">
-                  <span className="text-red-500 mt-0.5">⚠️</span>
-                  <div>
-                    <p className="text-sm font-semibold text-red-700">
-                      {overdueTasks.length} overdue task{overdueTasks.length > 1 ? 's' : ''}
-                    </p>
-                    <p className="text-xs text-red-600 mt-0.5">
-                      {overdueTasks.map((t) => t.title).join(', ')}
-                    </p>
-                  </div>
-                </div>
-                <button onClick={() => setDismissedReminders(true)} className="text-red-400 hover:text-red-600 text-xl leading-none">×</button>
-              </div>
-            )}
-            {dueSoonTasks.length > 0 && (
-              <div className="flex items-start justify-between gap-3 bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3">
-                <div className="flex items-start gap-2">
-                  <span className="mt-0.5">📅</span>
-                  <div>
-                    <p className="text-sm font-semibold text-yellow-700">
-                      {dueSoonTasks.length} task{dueSoonTasks.length > 1 ? 's' : ''} due within 2 days
-                    </p>
-                    <p className="text-xs text-yellow-600 mt-0.5">
-                      {dueSoonTasks.map((t) => t.title).join(', ')}
-                    </p>
-                  </div>
-                </div>
-                <button onClick={() => setDismissedReminders(true)} className="text-yellow-400 hover:text-yellow-600 text-xl leading-none">×</button>
-              </div>
-            )}
-          </div>
+        {/* Due Date Reminders — always based on ALL tasks, not filtered */}
+        {!dismissedReminders && (
+          <ReminderBanner tasks={allTasks} onDismiss={() => setDismissedReminders(true)} />
         )}
 
         {/* Stats Row */}

@@ -3,10 +3,11 @@ import { useAuth } from '../context/AuthContext';
 export default function TaskCard({ task, onEdit, onDelete }) {
   const { user } = useAuth();
 
-  // Only task creator or team creator can edit/delete
-  const canModify = user && (task.created_by === user.id || task.my_team_role === 'creator');
+  // Use == (not ===) to handle number/string type mismatch from API
+  const isTaskCreator = user && task.created_by == user.id;
+  const isTeamCreator = task.my_team_role === 'creator';
+  const canModify = isTaskCreator || isTeamCreator;
 
-  // Parse date as local to avoid UTC timezone shift
   const parseLocalDate = (dateStr) => {
     const [year, month, day] = dateStr.split('T')[0].split('-').map(Number);
     return new Date(year, month - 1, day);
@@ -21,11 +22,13 @@ export default function TaskCard({ task, onEdit, onDelete }) {
       <div className="flex items-start justify-between gap-2 mb-2">
         <h3 className="font-medium text-slate-800 leading-snug flex-1">{task.title}</h3>
         <div className="flex gap-1 shrink-0">
-          <button onClick={() => onEdit(task)} className="text-slate-400 hover:text-brand-600 p-1 rounded" title="Edit">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-          </button>
+          {canModify && (
+            <button onClick={() => onEdit(task)} className="text-slate-400 hover:text-brand-600 p-1 rounded" title="Edit">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+          )}
           {canModify && (
             <button onClick={() => onDelete(task.id)} className="text-slate-400 hover:text-red-600 p-1 rounded" title="Delete">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
