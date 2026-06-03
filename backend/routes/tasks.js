@@ -6,29 +6,6 @@ const { body, param, query, validationResult } = require('express-validator');
 
 router.use(isAuthenticated);
 
-// GET /tasks/reminders — get overdue or due-today tasks for current user
-router.get('/reminders', async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT t.id, t.title, t.due_date, t.status, t.priority,
-              teams.name AS team_name
-       FROM tasks t
-       JOIN teams ON t.team_id = teams.id
-       JOIN team_members tm ON t.team_id = tm.team_id AND tm.user_id = $1
-       WHERE t.due_date IS NOT NULL
-         AND t.status != 'done'
-         AND t.due_date <= CURRENT_DATE + INTERVAL '1 day'
-       ORDER BY t.due_date ASC
-       LIMIT 20`,
-      [req.user.id]
-    );
-    res.json(result.rows);
-  } catch (err) {
-    console.error('Reminders error:', err);
-    res.status(500).json({ error: 'Failed to fetch reminders.' });
-  }
-});
-
 // GET /tasks — get tasks with optional filters: ?team_id=1&assigned_to=2&status=todo&search=keyword
 router.get('/', async (req, res) => {
   try {
