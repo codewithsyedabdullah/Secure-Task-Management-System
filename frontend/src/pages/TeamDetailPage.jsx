@@ -15,6 +15,11 @@ export default function TeamDetailPage() {
   const [addLoading, setAddLoading] = useState(false);
   const [addSuccess, setAddSuccess] = useState('');
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
 
   useEffect(() => {
     api.get(`/teams/${id}`)
@@ -36,6 +41,28 @@ export default function TeamDetailPage() {
       setAddError(err.response?.data?.error || 'Failed to add member.');
     } finally {
       setAddLoading(false);
+    }
+  };
+
+  const startEditing = () => {
+    setEditName(team.name);
+    setEditDesc(team.description || '');
+    setEditError('');
+    setEditing(true);
+  };
+
+  const handleEditTeam = async (e) => {
+    e.preventDefault();
+    setEditError('');
+    setEditLoading(true);
+    try {
+      const res = await api.put(`/teams/${id}`, { name: editName, description: editDesc });
+      setTeam((prev) => ({ ...prev, name: res.data.name, description: res.data.description }));
+      setEditing(false);
+    } catch (err) {
+      setEditError(err.response?.data?.error || err.response?.data?.errors?.[0]?.msg || 'Failed to update team.');
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -76,16 +103,46 @@ export default function TeamDetailPage() {
         </div>
 
         <div className="card p-6 mb-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">{team.name}</h1>
-              {team.description && <p className="text-slate-500 mt-1">{team.description}</p>}
-              <p className="text-xs text-slate-400 mt-2">Created by {team.creator_name}</p>
+          {editing ? (
+            <form onSubmit={handleEditTeam} className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Team Name</label>
+                <input value={editName} onChange={(e) => setEditName(e.target.value)}
+                  className="input" required minLength={2} maxLength={100} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+                <textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)}
+                  className="input resize-none" rows={2} maxLength={500} />
+              </div>
+              {editError && <p className="text-sm text-red-600">{editError}</p>}
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => setEditing(false)} className="btn-secondary">Cancel</button>
+                <button type="submit" disabled={editLoading} className="btn-primary">
+                  {editLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="flex items-start justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-slate-900">{team.name}</h1>
+                {team.description && <p className="text-slate-500 mt-1">{team.description}</p>}
+                <p className="text-xs text-slate-400 mt-2">Created by {team.creator_name}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`text-xs font-medium px-2 py-1 rounded-full ${isCreator ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-600'}`}>
+                  {isCreator ? 'Creator' : 'Member'}
+                </span>
+                {isCreator && (
+                  <button onClick={startEditing}
+                    className="text-xs text-slate-500 hover:text-brand-600 font-medium border border-slate-200 px-2 py-1 rounded-lg hover:border-brand-300 transition-colors">
+                    ✏️ Edit
+                  </button>
+                )}
+              </div>
             </div>
-            <span className={`text-xs font-medium px-2 py-1 rounded-full ${isCreator ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-600'}`}>
-              {isCreator ? 'Creator' : 'Member'}
-            </span>
-          </div>
+          )}
         </div>
 
         {/* Members */}

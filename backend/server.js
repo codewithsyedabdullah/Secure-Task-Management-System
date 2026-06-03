@@ -21,8 +21,20 @@ const tasksRoutes = require('./routes/tasks');
 const app = express();
 
 // ─── Middleware ────────────────────────────────────────────────
+const allowedOrigins = [
+  'https://secure-task-management-system.vercel.app',
+  'http://localhost:5173',
+  'http://localhost:4173',
+];
 app.use(cors({
+<<<<<<< Updated upstream
   origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+=======
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error('CORS blocked: ' + origin));
+  },
+>>>>>>> Stashed changes
   credentials: true,
 }));
 app.use(express.json());
