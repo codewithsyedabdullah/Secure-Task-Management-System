@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
@@ -7,15 +7,20 @@ import { useAuth } from '../context/AuthContext';
 export default function TeamDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [team, setTeam] = useState(null);
   const [loading, setLoading] = useState(true);
   const [memberEmail, setMemberEmail] = useState('');
   const [addError, setAddError] = useState('');
   const [addLoading, setAddLoading] = useState(false);
   const [addSuccess, setAddSuccess] = useState('');
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteSuccess, setInviteSuccess] = useState('');
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   useEffect(() => {
-    api.get(`/teams/${id}`)
+    api.get('/teams/' + id)
       .then((res) => setTeam(res.data))
       .catch(() => setTeam(null))
       .finally(() => setLoading(false));
@@ -26,7 +31,7 @@ export default function TeamDetailPage() {
     setAddError(''); setAddSuccess('');
     setAddLoading(true);
     try {
-      const res = await api.post(`/teams/${id}/members`, { email: memberEmail });
+      const res = await api.post('/teams/' + id + '/members', { email: memberEmail });
       setTeam((prev) => ({ ...prev, members: [...prev.members, res.data.user] }));
       setAddSuccess(res.data.message);
       setMemberEmail('');
@@ -38,13 +43,37 @@ export default function TeamDetailPage() {
   };
 
   const handleRemoveMember = async (userId, username) => {
-    if (!confirm(`Remove ${username} from the team?`)) return;
+    if (!confirm('Remove ' + username + ' from the team?')) return;
     try {
-      await api.delete(`/teams/${id}/members/${userId}`);
+      await api.delete('/teams/' + id + '/members/' + userId);
       setTeam((prev) => ({ ...prev, members: prev.members.filter((m) => m.id !== userId) }));
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to remove member.');
     }
+  };
+
+  const handleDeleteTeam = async () => {
+    if (!confirm('Delete this team and all its tasks? This cannot be undone.')) return;
+    setDeleteLoading(true);
+    try {
+      await api.delete('/teams/' + id);
+      navigate('/dashboard');
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to delete team.');
+      setDeleteLoading(false);
+    }
+  };
+
+  // Stubbed invite — no SMTP
+  const handleInvite = async (e) => {
+    e.preventDefault();
+    setInviteLoading(true);
+    setInviteSuccess('');
+    await new Promise((r) => setTimeout(r, 800));
+    console.log('[INVITE STUB] Invitation would be sent to: ' + inviteEmail + ' for team: ' + (team?.name));
+    setInviteSuccess('Invitation sent to ' + inviteEmail + ' (stubbed — no SMTP configured)');
+    setInviteEmail('');
+    setInviteLoading(false);
   };
 
   if (loading) return (
@@ -58,7 +87,7 @@ export default function TeamDetailPage() {
       <Navbar />
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
         <p className="text-slate-500">Team not found or access denied.</p>
-        <Link to="/dashboard" className="btn-primary inline-block mt-4">← Back to Dashboard</Link>
+        <Link to="/dashboard" className="btn-primary inline-block mt-4">Back to Dashboard</Link>
       </div>
     </div>
   );
@@ -73,6 +102,7 @@ export default function TeamDetailPage() {
           <Link to="/dashboard" className="text-sm text-slate-500 hover:text-brand-600">← Dashboard</Link>
         </div>
 
+        {/* Team Header */}
         <div className="card p-6 mb-6">
           <div className="flex items-start justify-between">
             <div>
@@ -80,20 +110,28 @@ export default function TeamDetailPage() {
               {team.description && <p className="text-slate-500 mt-1">{team.description}</p>}
               <p className="text-xs text-slate-400 mt-2">Created by {team.creator_name}</p>
             </div>
-            <span className={`text-xs font-medium px-2 py-1 rounded-full ${isCreator ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-600'}`}>
-              {isCreator ? 'Creator' : 'Member'}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className={"text-xs font-medium px-2 py-1 rounded-full " + (isCreator ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-600')}>
+                {isCreator ? 'Creator' : 'Member'}
+              </span>
+              {isCreator && (
+                <button onClick={handleDeleteTeam} disabled={deleteLoading}
+                  className="btn-danger text-xs py-1 px-3">
+                  {deleteLoading ? '...' : 'Delete Team'}
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Members */}
-        <div className="card p-6">
+        <div className="card p-6 mb-6">
           <h2 className="font-semibold text-slate-800 mb-4">Members ({team.members?.length || 0})</h2>
 
           {isCreator && (
             <form onSubmit={handleAddMember} className="mb-4 flex gap-2">
               <input value={memberEmail} onChange={(e) => setMemberEmail(e.target.value)}
-                className="input flex-1" type="email" placeholder="Add member by email" required />
+                className="input flex-1" type="email" placeholder="Add existing user by email" required />
               <button type="submit" disabled={addLoading} className="btn-primary whitespace-nowrap">
                 {addLoading ? '...' : 'Add'}
               </button>
@@ -111,7 +149,7 @@ export default function TeamDetailPage() {
                   <p className="text-xs text-slate-400">{m.email}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${m.role === 'creator' ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-600'}`}>
+                  <span className={"text-xs px-2 py-0.5 rounded-full " + (m.role === 'creator' ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-600')}>
                     {m.role}
                   </span>
                   {isCreator && m.id !== user.id && (
@@ -123,6 +161,29 @@ export default function TeamDetailPage() {
             ))}
           </ul>
         </div>
+
+        {/* Invite by Email (stubbed) */}
+        {isCreator && (
+          <div className="card p-6">
+            <h2 className="font-semibold text-slate-800 mb-1">Invite by Email</h2>
+            <p className="text-xs text-slate-400 mb-4">
+              Send an invitation to someone who hasn't registered yet.
+              Email delivery is stubbed — no SMTP configured.
+            </p>
+            <form onSubmit={handleInvite} className="flex gap-2">
+              <input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)}
+                className="input flex-1" type="email" placeholder="someone@example.com" required />
+              <button type="submit" disabled={inviteLoading} className="btn-secondary whitespace-nowrap">
+                {inviteLoading ? 'Sending...' : 'Send Invite'}
+              </button>
+            </form>
+            {inviteSuccess && (
+              <div className="mt-3 p-2 bg-blue-50 border border-blue-200 text-blue-700 rounded text-sm">
+                ✉️ {inviteSuccess}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

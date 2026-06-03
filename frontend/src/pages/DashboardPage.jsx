@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../api';
 import Navbar from '../components/Navbar';
 import TaskCard from '../components/TaskCard';
@@ -10,12 +11,13 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [teams, setTeams] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [allMembers, setAllMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
+  const [dismissedReminders, setDismissedReminders] = useState(false);
 
-  // Filters
   const [filterTeam, setFilterTeam] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterAssignee, setFilterAssignee] = useState('');
@@ -25,6 +27,16 @@ export default function DashboardPage() {
     try {
       const res = await api.get('/teams');
       setTeams(res.data);
+      const memberMap = {};
+      await Promise.all(
+        res.data.map(async (team) => {
+          try {
+            const tr = await api.get('/teams/' + team.id);
+            tr.data.members.forEach((m) => { memberMap[m.id] = m; });
+          } catch {}
+        })
+      );
+      setAllMembers(Object.values(memberMap));
     } catch {}
   };
 
@@ -35,13 +47,13 @@ export default function DashboardPage() {
     if (filterAssignee) params.set('assigned_to', filterAssignee);
     if (search) params.set('search', search);
     try {
-      const res = await api.get(`/tasks?${params}`);
+      const res = await api.get('/tasks?' + params.toString());
       setTasks(res.data);
     } catch {}
   }, [filterTeam, filterStatus, filterAssignee, search]);
 
   useEffect(() => {
-    Promise.all([fetchTeams()]).finally(() => setLoading(false));
+    fetchTeams().finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -51,7 +63,7 @@ export default function DashboardPage() {
   const handleDeleteTask = async (id) => {
     if (!confirm('Delete this task?')) return;
     try {
-      await api.delete(`/tasks/${id}`);
+      await api.delete('/tasks/' + id);
       setTasks((prev) => prev.filter((t) => t.id !== id));
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to delete task.');
@@ -74,7 +86,20 @@ export default function DashboardPage() {
     setFilterTeam(''); setFilterStatus(''); setFilterAssignee(''); setSearch('');
   };
 
-  const allMembers = teams.flatMap(t => []).filter(Boolean); // simplified — full members from team detail
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const overdueTasks = tasks.filter((t) => {
+    if (!t.due_date || t.status === 'done') return false;
+    return new Date(t.due_date) < today;
+  });
+
+  const dueSoonTasks = tasks.filter((t) => {
+    if (!t.due_date || t.status === 'done') return false;
+    const due = new Date(t.due_date);
+    const diff = (due - today) / (1000 * 60 * 60 * 24);
+    return diff >= 0 && diff <= 2;
+  });
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -87,6 +112,45 @@ export default function DashboardPage() {
       <Navbar />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        {/* Due Date Reminders */}
+        {!dismissedReminders && (overdueTasks.length > 0 || dueSoonTasks.length > 0) && (
+          <div className="mb-6 space-y-2">
+            {overdueTasks.length > 0 && (
+              <div className="flex items-start justify-between gap-3 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                <div className="flex items-start gap-2">
+                  <span className="text-red-500 mt-0.5">⚠️</span>
+                  <div>
+                    <p className="text-sm font-semibold text-red-700">
+                      {overdueTasks.length} overdue task{overdueTasks.length > 1 ? 's' : ''}
+                    </p>
+                    <p className="text-xs text-red-600 mt-0.5">
+                      {overdueTasks.map((t) => t.title).join(', ')}
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setDismissedReminders(true)} className="text-red-400 hover:text-red-600 text-xl leading-none">×</button>
+              </div>
+            )}
+            {dueSoonTasks.length > 0 && (
+              <div className="flex items-start justify-between gap-3 bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-3">
+                <div className="flex items-start gap-2">
+                  <span className="mt-0.5">📅</span>
+                  <div>
+                    <p className="text-sm font-semibold text-yellow-700">
+                      {dueSoonTasks.length} task{dueSoonTasks.length > 1 ? 's' : ''} due within 2 days
+                    </p>
+                    <p className="text-xs text-yellow-600 mt-0.5">
+                      {dueSoonTasks.map((t) => t.title).join(', ')}
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setDismissedReminders(true)} className="text-yellow-400 hover:text-yellow-600 text-xl leading-none">×</button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Stats Row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
           {[
@@ -95,7 +159,7 @@ export default function DashboardPage() {
             { label: 'In Progress', value: tasks.filter(t => t.status === 'in_progress').length, color: 'bg-yellow-50 text-yellow-700' },
             { label: 'Done', value: tasks.filter(t => t.status === 'done').length, color: 'bg-green-50 text-green-700' },
           ].map((s) => (
-            <div key={s.label} className={`card p-4 ${s.color}`}>
+            <div key={s.label} className={"card p-4 " + s.color}>
               <div className="text-2xl font-bold">{s.value}</div>
               <div className="text-sm font-medium opacity-80">{s.label}</div>
             </div>
@@ -103,7 +167,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sidebar — Teams */}
+          {/* Sidebar */}
           <aside className="lg:w-64 shrink-0">
             <div className="card p-4">
               <div className="flex items-center justify-between mb-3">
@@ -117,19 +181,27 @@ export default function DashboardPage() {
                 <ul className="space-y-1">
                   <li>
                     <button onClick={() => setFilterTeam('')}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${!filterTeam ? 'bg-brand-50 text-brand-700 font-medium' : 'hover:bg-slate-50 text-slate-600'}`}>
+                      className={"w-full text-left px-3 py-2 rounded-lg text-sm transition-colors " + (!filterTeam ? 'bg-brand-50 text-brand-700 font-medium' : 'hover:bg-slate-50 text-slate-600')}>
                       All Teams
                     </button>
                   </li>
                   {teams.map((team) => (
                     <li key={team.id}>
-                      <button onClick={() => setFilterTeam(team.id.toString())}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${filterTeam === team.id.toString() ? 'bg-brand-50 text-brand-700 font-medium' : 'hover:bg-slate-50 text-slate-600'}`}>
-                        <span className="flex items-center justify-between">
-                          <span className="truncate">{team.name}</span>
-                          <span className="text-xs text-slate-400 ml-1">{team.member_count}</span>
-                        </span>
-                      </button>
+                      <div className={"flex items-center rounded-lg text-sm transition-colors " + (filterTeam === team.id.toString() ? 'bg-brand-50 text-brand-700 font-medium' : 'hover:bg-slate-50 text-slate-600')}>
+                        <button onClick={() => setFilterTeam(team.id.toString())} className="flex-1 text-left px-3 py-2">
+                          <span className="flex items-center justify-between">
+                            <span className="truncate">{team.name}</span>
+                            <span className="text-xs text-slate-400 ml-1">{team.member_count}</span>
+                          </span>
+                        </button>
+                        <Link to={"/teams/" + team.id} title="Manage team"
+                          className="pr-2 text-slate-300 hover:text-brand-500">
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        </Link>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -137,9 +209,8 @@ export default function DashboardPage() {
             </div>
           </aside>
 
-          {/* Main — Tasks */}
+          {/* Main Tasks */}
           <main className="flex-1 min-w-0">
-            {/* Filters & Search */}
             <div className="card p-4 mb-4">
               <div className="flex flex-col sm:flex-row gap-3">
                 <input value={search} onChange={(e) => setSearch(e.target.value)}
@@ -149,6 +220,12 @@ export default function DashboardPage() {
                   <option value="todo">To Do</option>
                   <option value="in_progress">In Progress</option>
                   <option value="done">Done</option>
+                </select>
+                <select value={filterAssignee} onChange={(e) => setFilterAssignee(e.target.value)} className="input sm:w-40">
+                  <option value="">All Assignees</option>
+                  {allMembers.map((m) => (
+                    <option key={m.id} value={m.id}>{m.username}</option>
+                  ))}
                 </select>
                 <div className="flex gap-2">
                   {(filterTeam || filterStatus || filterAssignee || search) && (
