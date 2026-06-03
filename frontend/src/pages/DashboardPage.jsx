@@ -213,7 +213,8 @@ export default function DashboardPage() {
                 {tasks.map((task) => (
                   <TaskCard key={task.id} task={task}
                     onEdit={(t) => { setEditingTask(t); setShowTaskModal(true); }}
-                    onDelete={handleDeleteTask} />
+                    onDelete={handleDeleteTask}
+                    onStatusUpdate={handleSaveTask} />
                 ))}
               </div>
             )}

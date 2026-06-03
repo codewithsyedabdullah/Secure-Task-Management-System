@@ -2,16 +2,31 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/pool');
 const { isAuthenticated } = require('../middleware/auth');
-const { body, param, query, validationResult } = require('express-validator');
+const { body, param, validationResult } = require('express-validator');
 
 router.use(isAuthenticated);
 
-// GET /tasks — get tasks with optional filters: ?team_id=1&assigned_to=2&status=todo&search=keyword
+const enrichTask = async (taskId, userId) => {
+  const result = await pool.query(
+    `SELECT t.*, teams.name AS team_name,
+            assignee.username AS assignee_name,
+            creator.username AS creator_name,
+            tm.role AS my_team_role
+     FROM tasks t
+     JOIN teams ON t.team_id = teams.id
+     JOIN team_members tm ON t.team_id = tm.team_id AND tm.user_id = $2
+     LEFT JOIN users assignee ON t.assigned_to = assignee.id
+     LEFT JOIN users creator ON t.created_by = creator.id
+     WHERE t.id = $1`,
+    [taskId, userId]
+  );
+  return result.rows[0];
+};
+
+// GET /tasks
 router.get('/', async (req, res) => {
   try {
     const { team_id, assigned_to, status, search } = req.query;
-
-    // Only return tasks from teams the user belongs to
     let queryStr = `
       SELECT t.id, t.title, t.description, t.status, t.priority, t.due_date,
              t.team_id, t.assigned_to, t.created_by, t.created_at, t.updated_at,
@@ -28,14 +43,11 @@ router.get('/', async (req, res) => {
     `;
     const params = [req.user.id];
     let idx = 2;
-
-    if (team_id) { queryStr += ` AND t.team_id = $${idx++}`; params.push(team_id); }
-    if (assigned_to) { queryStr += ` AND t.assigned_to = $${idx++}`; params.push(assigned_to); }
-    if (status) { queryStr += ` AND t.status = $${idx++}`; params.push(status); }
-    if (search) { queryStr += ` AND (t.title ILIKE $${idx} OR t.description ILIKE $${idx++})`; params.push(`%${search}%`); }
-
+    if (team_id)    { queryStr += ` AND t.team_id = $${idx++}`;    params.push(team_id); }
+    if (assigned_to){ queryStr += ` AND t.assigned_to = $${idx++}`; params.push(assigned_to); }
+    if (status)     { queryStr += ` AND t.status = $${idx++}`;      params.push(status); }
+    if (search)     { queryStr += ` AND (t.title ILIKE $${idx} OR t.description ILIKE $${idx++})`; params.push(`%${search}%`); }
     queryStr += ' ORDER BY t.created_at DESC';
-
     const result = await pool.query(queryStr, params);
     res.json(result.rows);
   } catch (err) {
@@ -44,7 +56,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// POST /tasks — create a task
+// POST /tasks — team creator only
 router.post(
   '/',
   [
@@ -52,7 +64,6 @@ router.post(
     body('description').optional().trim().isLength({ max: 2000 }),
     body('team_id').isInt({ min: 1 }).withMessage('Valid team_id required.'),
     body('assigned_to').optional().isInt({ min: 1 }),
-    body('status').optional().isIn(['todo', 'in_progress', 'done']),
     body('priority').optional().isIn(['low', 'medium', 'high']),
     body('due_date').optional().isDate().withMessage('due_date must be a valid date (YYYY-MM-DD).'),
   ],
@@ -60,16 +71,16 @@ router.post(
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-    const { title, description, team_id, assigned_to, status, priority, due_date } = req.body;
+    const { title, description, team_id, assigned_to, priority, due_date } = req.body;
     try {
-      // Verify user is a member of the team
-      const memberCheck = await pool.query(
-        'SELECT id FROM team_members WHERE team_id = $1 AND user_id = $2',
+      // Only team creator can create tasks
+      const roleCheck = await pool.query(
+        'SELECT role FROM team_members WHERE team_id = $1 AND user_id = $2',
         [team_id, req.user.id]
       );
-      if (!memberCheck.rows.length) return res.status(403).json({ error: 'You must be a team member to create tasks.' });
+      if (!roleCheck.rows.length) return res.status(403).json({ error: 'You are not a member of this team.' });
+      if (roleCheck.rows[0].role !== 'creator') return res.status(403).json({ error: 'Only the team creator can create tasks.' });
 
-      // If assigning to someone, verify they are a team member
       if (assigned_to) {
         const assigneeCheck = await pool.query(
           'SELECT id FROM team_members WHERE team_id = $1 AND user_id = $2',
@@ -80,25 +91,12 @@ router.post(
 
       const result = await pool.query(
         `INSERT INTO tasks (title, description, team_id, assigned_to, created_by, status, priority, due_date)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-         RETURNING *`,
-        [title, description || null, team_id, assigned_to || null, req.user.id,
-         status || 'todo', priority || 'medium', due_date || null]
+         VALUES ($1, $2, $3, $4, $5, 'todo', $6, $7) RETURNING *`,
+        [title, description || null, team_id, assigned_to || null, req.user.id, priority || 'medium', due_date || null]
       );
 
-      // Fetch enriched task
-      const enriched = await pool.query(
-        `SELECT t.*, teams.name AS team_name, u.username AS assignee_name, c.username AS creator_name,
-                tm2.role AS my_team_role
-         FROM tasks t JOIN teams ON t.team_id = teams.id
-         JOIN team_members tm2 ON t.team_id = tm2.team_id AND tm2.user_id = $2
-         LEFT JOIN users u ON t.assigned_to = u.id
-         LEFT JOIN users c ON t.created_by = c.id
-         WHERE t.id = $1`,
-        [result.rows[0].id, req.user.id]
-      );
-
-      res.status(201).json(enriched.rows[0]);
+      const enriched = await enrichTask(result.rows[0].id, req.user.id);
+      res.status(201).json(enriched);
     } catch (err) {
       console.error('Create task error:', err);
       res.status(500).json({ error: 'Failed to create task.' });
@@ -106,26 +104,59 @@ router.post(
   }
 );
 
-// GET /tasks/:id — single task
+// GET /tasks/:id
 router.get('/:id', [param('id').isInt()], async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT t.*, teams.name AS team_name, u.username AS assignee_name, c.username AS creator_name
-       FROM tasks t JOIN teams ON t.team_id = teams.id
-       JOIN team_members tm ON t.team_id = tm.team_id AND tm.user_id = $2
-       LEFT JOIN users u ON t.assigned_to = u.id
-       LEFT JOIN users c ON t.created_by = c.id
-       WHERE t.id = $1`,
-      [req.params.id, req.user.id]
-    );
-    if (!result.rows.length) return res.status(404).json({ error: 'Task not found or access denied.' });
-    res.json(result.rows[0]);
+    const task = await enrichTask(req.params.id, req.user.id);
+    if (!task) return res.status(404).json({ error: 'Task not found or access denied.' });
+    res.json(task);
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch task.' });
   }
 });
 
-// PUT /tasks/:id — update a task
+// PUT /tasks/:id/status — assigned member updates status only
+router.put(
+  '/:id/status',
+  [
+    param('id').isInt(),
+    body('status').isIn(['todo', 'in_progress', 'done', 'need_help', 'need_more_time'])
+      .withMessage('Invalid status.'),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+    try {
+      const taskResult = await pool.query(
+        `SELECT t.*, tm.role FROM tasks t
+         JOIN team_members tm ON t.team_id = tm.team_id AND tm.user_id = $2
+         WHERE t.id = $1`,
+        [req.params.id, req.user.id]
+      );
+      if (!taskResult.rows.length) return res.status(404).json({ error: 'Task not found or access denied.' });
+
+      const task = taskResult.rows[0];
+      // Must be the assignee or team creator
+      if (task.assigned_to != req.user.id && task.role !== 'creator') {
+        return res.status(403).json({ error: 'Only the assigned member or team creator can update the status.' });
+      }
+
+      await pool.query(
+        'UPDATE tasks SET status = $1, updated_at = NOW() WHERE id = $2',
+        [req.body.status, req.params.id]
+      );
+
+      const enriched = await enrichTask(req.params.id, req.user.id);
+      res.json(enriched);
+    } catch (err) {
+      console.error('Update status error:', err);
+      res.status(500).json({ error: 'Failed to update status.' });
+    }
+  }
+);
+
+// PUT /tasks/:id — full update, team creator only
 router.put(
   '/:id',
   [
@@ -133,7 +164,7 @@ router.put(
     body('title').optional().trim().isLength({ min: 1, max: 255 }),
     body('description').optional().trim().isLength({ max: 2000 }),
     body('assigned_to').optional({ nullable: true }).isInt({ min: 1 }),
-    body('status').optional().isIn(['todo', 'in_progress', 'done']),
+    body('status').optional().isIn(['todo', 'in_progress', 'done', 'need_help', 'need_more_time']),
     body('priority').optional().isIn(['low', 'medium', 'high']),
     body('due_date').optional({ nullable: true }).isDate(),
   ],
@@ -142,17 +173,21 @@ router.put(
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     try {
-      // Verify user is a team member
       const taskResult = await pool.query(
-        'SELECT t.* FROM tasks t JOIN team_members tm ON t.team_id = tm.team_id AND tm.user_id = $2 WHERE t.id = $1',
+        `SELECT t.*, tm.role FROM tasks t
+         JOIN team_members tm ON t.team_id = tm.team_id AND tm.user_id = $2
+         WHERE t.id = $1`,
         [req.params.id, req.user.id]
       );
       if (!taskResult.rows.length) return res.status(404).json({ error: 'Task not found or access denied.' });
 
       const task = taskResult.rows[0];
-      const { title, description, assigned_to, status, priority, due_date } = req.body;
+      if (task.role !== 'creator') {
+        return res.status(403).json({ error: 'Only the team creator can edit tasks. Use /status to update your task status.' });
+      }
 
-      const result = await pool.query(
+      const { title, description, assigned_to, status, priority, due_date } = req.body;
+      await pool.query(
         `UPDATE tasks SET
            title = COALESCE($1, title),
            description = COALESCE($2, description),
@@ -161,8 +196,7 @@ router.put(
            priority = COALESCE($5, priority),
            due_date = $6,
            updated_at = NOW()
-         WHERE id = $7
-         RETURNING *`,
+         WHERE id = $7`,
         [
           title || task.title,
           description !== undefined ? description : task.description,
@@ -174,17 +208,8 @@ router.put(
         ]
       );
 
-      const enriched = await pool.query(
-        `SELECT t.*, teams.name AS team_name, u.username AS assignee_name, c.username AS creator_name,
-                tm2.role AS my_team_role
-         FROM tasks t JOIN teams ON t.team_id = teams.id
-         JOIN team_members tm2 ON t.team_id = tm2.team_id AND tm2.user_id = $2
-         LEFT JOIN users u ON t.assigned_to = u.id
-         LEFT JOIN users c ON t.created_by = c.id
-         WHERE t.id = $1`,
-        [result.rows[0].id, req.user.id]
-      );
-      res.json(enriched.rows[0]);
+      const enriched = await enrichTask(req.params.id, req.user.id);
+      res.json(enriched);
     } catch (err) {
       console.error('Update task error:', err);
       res.status(500).json({ error: 'Failed to update task.' });
@@ -192,7 +217,7 @@ router.put(
   }
 );
 
-// DELETE /tasks/:id — delete a task (creator or team creator)
+// DELETE /tasks/:id — team creator only
 router.delete('/:id', [param('id').isInt()], async (req, res) => {
   try {
     const result = await pool.query(
@@ -202,11 +227,9 @@ router.delete('/:id', [param('id').isInt()], async (req, res) => {
       [req.params.id, req.user.id]
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Task not found or access denied.' });
-
-    const task = result.rows[0];
-    if (task.created_by !== req.user.id && task.role !== 'creator')
-      return res.status(403).json({ error: 'Only the task creator or team creator can delete this task.' });
-
+    if (result.rows[0].role !== 'creator') {
+      return res.status(403).json({ error: 'Only the team creator can delete tasks.' });
+    }
     await pool.query('DELETE FROM tasks WHERE id = $1', [req.params.id]);
     res.json({ message: 'Task deleted successfully.' });
   } catch (err) {
