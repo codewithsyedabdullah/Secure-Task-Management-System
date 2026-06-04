@@ -1,5 +1,12 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/api/:path*",
+      "destination": "https://secure-task-management-system-production.up.railway.app/:path*"
+    },
+    {
+      "source": "/((?!api).*)",
+      "destination": "/index.html"
+    }
   ]
 }

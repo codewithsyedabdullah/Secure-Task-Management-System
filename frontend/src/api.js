@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+// In production: requests go to /api/... which Vercel proxies to Railway
+// This makes cookies same-domain — fixes Safari ITP blocking third-party cookies
+// In dev: Vite proxy handles /api -> localhost:5000
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '',
+  baseURL: '/api',
   withCredentials: true,
 });
 

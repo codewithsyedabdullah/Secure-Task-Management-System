@@ -5,9 +5,11 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/auth': 'http://localhost:5000',
-      '/teams': 'http://localhost:5000',
-      '/tasks': 'http://localhost:5000',
+      '/api': {
+        target: 'http://localhost:5000',
+        rewrite: (path) => path.replace(/^\/api/, ''),
+        changeOrigin: true,
+      }
     }
   }
 })
