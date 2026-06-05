@@ -74,8 +74,8 @@ export default function DashboardPage() {
       setAllTasks(r.data);
       // Only tasks where current user is an assignee or creator
       setMyTasks(r.data.filter(t =>
-        t.created_by === user?.id ||
-        (t.assignees || []).some(a => a.id === user?.id)
+        t.created_by == user?.id ||
+        (t.assignees || []).some(a => a.id == user?.id)
       ));
     }).catch(() => {});
   }, [tasks, user]);
