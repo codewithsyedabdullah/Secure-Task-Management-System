@@ -208,4 +208,54 @@ router.delete('/:id/members/:userId', [param('id').isInt(), param('userId').isIn
   }
 });
 
+// POST /teams/:id/invite — invite a non-registered user by email (stubbed, no SMTP)
+router.post('/:id/invite', [param('id').isInt(), body('email').isEmail().normalizeEmail()], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ error: errors.array()[0].msg });
+
+    // Verify requester is creator
+    const creatorCheck = await pool.query(
+      'SELECT role FROM team_members WHERE team_id = $1 AND user_id = $2',
+      [req.params.id, req.user.id]
+    );
+    if (!creatorCheck.rows.length || creatorCheck.rows[0].role !== 'creator')
+      return res.status(403).json({ error: 'Only the team creator can send invites.' });
+
+    const teamResult = await pool.query('SELECT name FROM teams WHERE id = $1', [req.params.id]);
+    if (!teamResult.rows.length) return res.status(404).json({ error: 'Team not found.' });
+
+    const { email } = req.body;
+    const teamName = teamResult.rows[0].name;
+
+    // Check if user already exists — if so, suggest adding them directly
+    const existingUser = await pool.query('SELECT id, username FROM users WHERE email = $1', [email]);
+    if (existingUser.rows.length) {
+      // Check if already a member
+      const alreadyMember = await pool.query(
+        'SELECT id FROM team_members WHERE team_id = $1 AND user_id = $2',
+        [req.params.id, existingUser.rows[0].id]
+      );
+      if (alreadyMember.rows.length)
+        return res.status(409).json({ error: `${existingUser.rows[0].username} is already a member of this team.` });
+
+      return res.status(200).json({
+        message: `${email} already has an account. You can add them directly via the Members tab.`,
+        userExists: true,
+      });
+    }
+
+    // Stubbed: log the invite — no real email sent
+    console.log(`[INVITE STUB] Team "${teamName}" (id=${req.params.id}) — invite sent to ${email}`);
+
+    res.status(200).json({
+      message: `Invite sent to ${email}! They'll receive an email with instructions to join ${teamName}.`,
+      userExists: false,
+    });
+  } catch (err) {
+    console.error('Invite error:', err);
+    res.status(500).json({ error: 'Failed to send invite.' });
+  }
+});
+
 module.exports = router;

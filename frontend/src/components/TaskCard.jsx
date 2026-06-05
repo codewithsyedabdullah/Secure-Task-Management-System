@@ -18,10 +18,12 @@ export default function TaskCard({ task, onEdit, onDelete, onStatusUpdate }) {
   const { user } = useAuth();
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
-  const isTeamCreator = task.my_team_role === 'creator';
   // Use == to handle number/string type mismatch between session user.id and DB integer
   const isAssignee = user && (task.assignees || []).some(a => a.id == user.id);
-  const canUpdateStatus = isTeamCreator || isAssignee;
+  // Only assignees can update status — being the team creator alone does NOT grant this
+  const canUpdateStatus = isAssignee;
+  // Creators can still edit/delete tasks (separate from status updates)
+  const isTeamCreator = task.my_team_role === 'creator';
 
   const parseLocalDate = d => { const [y,m,dd]=d.split('T')[0].split('-').map(Number); return new Date(y,m-1,dd); };
   const todayLocal = new Date(); todayLocal.setHours(0,0,0,0);

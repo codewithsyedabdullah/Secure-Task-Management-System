@@ -23,52 +23,56 @@ export default function InviteModal({ teamId, teamName, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="card w-full max-w-md">
-        <div className="flex items-center justify-between p-5 border-b border-slate-100">
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(4px)', zIndex:50, display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+      <div style={{ background:'#161b22', border:'1px solid #30363d', borderRadius:12, width:'100%', maxWidth:440, fontFamily:'DM Sans,system-ui,sans-serif', color:'#c9d1d9' }}>
+        {/* Header */}
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'18px 24px', borderBottom:'1px solid #21262d' }}>
           <div>
-            <h2 className="text-lg font-semibold">Invite to Team</h2>
-            <p className="text-sm text-slate-500 mt-0.5">{teamName}</p>
+            <h2 style={{ fontSize:16, fontWeight:700, color:'#fff', margin:0 }}>Invite via Email</h2>
+            <p style={{ fontSize:12, color:'#8b949e', margin:'2px 0 0' }}>{teamName}</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', color:'#8b949e', padding:4, display:'flex' }}>
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <div className="p-5 space-y-4">
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700 flex gap-2">
+        {/* Body */}
+        <div style={{ padding:'20px 24px', display:'flex', flexDirection:'column', gap:14 }}>
+          <div style={{ background:'rgba(37,99,235,0.1)', border:'1px solid rgba(37,99,235,0.3)', borderRadius:8, padding:'10px 14px', fontSize:12, color:'#58a6ff', display:'flex', gap:8 }}>
             <span>ℹ️</span>
-            <span>Invites are stubbed — no real email is sent. The invited user must already have an account to be added directly via the Members tab.</span>
+            <span>Invite emails are stubbed — no real email is sent. If the person already has an account, use the <strong>Add member</strong> field above instead.</span>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form onSubmit={handleSubmit} style={{ display:'flex', flexDirection:'column', gap:12 }}>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+              <label style={{ display:'block', fontSize:13, fontWeight:600, color:'#c9d1d9', marginBottom:6 }}>Email Address</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="input"
                 placeholder="colleague@example.com"
                 required
+                style={{ width:'100%', background:'#0d1117', border:'1px solid #30363d', borderRadius:8, padding:'9px 12px', fontSize:13, color:'#e6edf3', outline:'none', fontFamily:'inherit', boxSizing:'border-box' }}
               />
             </div>
 
             {error && (
-              <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{error}</div>
+              <div style={{ background:'rgba(248,81,73,0.1)', border:'1px solid rgba(248,81,73,0.3)', borderRadius:8, padding:'10px 14px', fontSize:13, color:'#f85149' }}>{error}</div>
             )}
             {success && (
-              <div className="p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm">
-                ✅ {success}
-              </div>
+              <div style={{ background:'rgba(63,185,80,0.1)', border:'1px solid rgba(63,185,80,0.3)', borderRadius:8, padding:'10px 14px', fontSize:13, color:'#3fb950' }}>✅ {success}</div>
             )}
 
-            <div className="flex gap-3 pt-1">
-              <button type="button" onClick={onClose} className="btn-secondary flex-1">Close</button>
-              <button type="submit" disabled={loading} className="btn-primary flex-1">
-                {loading ? 'Sending...' : '✉️ Send Invite'}
+            <div style={{ display:'flex', gap:10, paddingTop:4 }}>
+              <button type="button" onClick={onClose}
+                style={{ flex:1, background:'transparent', color:'#c9d1d9', border:'1px solid #30363d', borderRadius:8, padding:'9px 16px', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>
+                Cancel
+              </button>
+              <button type="submit" disabled={loading}
+                style={{ flex:1, background:'#2563eb', color:'#fff', border:'none', borderRadius:8, padding:'9px 16px', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit', opacity: loading ? 0.7 : 1 }}>
+                {loading ? 'Sending…' : '✉️ Send Invite'}
               </button>
             </div>
           </form>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import InviteModal from '../components/InviteModal';
 
 export default function TeamDetailPage() {
   const { id } = useParams();
@@ -14,6 +15,7 @@ export default function TeamDetailPage() {
   const [addLoading, setAddLoading] = useState(false);
   const [addSuccess, setAddSuccess] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editDesc, setEditDesc] = useState('');
@@ -146,11 +148,19 @@ export default function TeamDetailPage() {
           <h2 style={sectionTitle}>Members ({team.members?.length || 0})</h2>
 
           {isCreator && (
-            <form onSubmit={handleAddMember} style={{ display:'flex', gap:10, marginBottom:16 }}>
-              <input value={memberEmail} onChange={e => setMemberEmail(e.target.value)}
-                type="email" placeholder="Add member by email" required style={{ ...inputStyle, flex:1 }} />
-              <button type="submit" disabled={addLoading} style={btnPrimary}>{addLoading ? '…' : 'Add'}</button>
-            </form>
+            <>
+              <form onSubmit={handleAddMember} style={{ display:'flex', gap:10, marginBottom:10 }}>
+                <input value={memberEmail} onChange={e => setMemberEmail(e.target.value)}
+                  type="email" placeholder="Add existing member by email" required style={{ ...inputStyle, flex:1 }} />
+                <button type="submit" disabled={addLoading} style={btnPrimary}>{addLoading ? '…' : 'Add'}</button>
+              </form>
+              <button
+                onClick={() => setShowInviteModal(true)}
+                style={{ ...btnSecondary, fontSize:12, padding:'6px 14px', marginBottom:16, display:'inline-flex', alignItems:'center', gap:6 }}
+              >
+                ✉️ Invite via Email
+              </button>
+            </>
           )}
           {addError   && <p style={{ color:'#f85149', fontSize:13, marginBottom:10 }}>{addError}</p>}
           {addSuccess && <p style={{ color:'#3fb950', fontSize:13, marginBottom:10 }}>{addSuccess}</p>}
@@ -184,6 +194,14 @@ export default function TeamDetailPage() {
         </div>
 
       </div>
+
+      {showInviteModal && (
+        <InviteModal
+          teamId={id}
+          teamName={team.name}
+          onClose={() => setShowInviteModal(false)}
+        />
+      )}
     </div>
   );
 }
