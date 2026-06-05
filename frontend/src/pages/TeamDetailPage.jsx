@@ -154,12 +154,6 @@ export default function TeamDetailPage() {
                   type="email" placeholder="Add existing member by email" required style={{ ...inputStyle, flex:1 }} />
                 <button type="submit" disabled={addLoading} style={btnPrimary}>{addLoading ? '…' : 'Add'}</button>
               </form>
-              <button
-                onClick={() => setShowInviteModal(true)}
-                style={{ ...btnSecondary, fontSize:12, padding:'6px 14px', marginBottom:16, display:'inline-flex', alignItems:'center', gap:6 }}
-              >
-                ✉️ Invite via Email
-              </button>
             </>
           )}
           {addError   && <p style={{ color:'#f85149', fontSize:13, marginBottom:10 }}>{addError}</p>}
@@ -189,9 +183,16 @@ export default function TeamDetailPage() {
                   )}
                 </div>
               </div>
+
             ))}
           </div>
         </div>
+        <button
+          onClick={() => setShowInviteModal(true)}
+          style={{ ...btnSecondary, fontSize:14, padding:'12px 24px', marginTop:24, width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}
+        >
+          ✉️ Invite Unregistered User by Email
+        </button>
 
       </div>
 
