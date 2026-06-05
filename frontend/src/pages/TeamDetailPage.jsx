@@ -61,6 +61,18 @@ export default function TeamDetailPage() {
     finally { setEditLoading(false); }
   };
 
+  // Stubbed invite — no SMTP
+  const handleInvite = async (e) => {
+    e.preventDefault();
+    setInviteLoading(true);
+    setInviteSuccess('');
+    await new Promise((r) => setTimeout(r, 800));
+    console.log('[INVITE STUB] Invitation would be sent to: ' + inviteEmail + ' for team: ' + (team?.name));
+    setInviteSuccess('Invitation sent to ' + inviteEmail + ' (stubbed — no SMTP configured)');
+    setInviteEmail('');
+    setInviteLoading(false);
+  };
+
   if (loading) return (
     <div style={{ minHeight:'100vh', background:'#0d1117', display:'flex', alignItems:'center', justifyContent:'center' }}>
       <div style={{ width:32, height:32, border:'3px solid #2563eb', borderTopColor:'transparent', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
@@ -182,6 +194,29 @@ export default function TeamDetailPage() {
             ))}
           </div>
         </div>
+        
+        {/* Invite by Email (stubbed) */}
+        {isCreator && (
+          <div className="card p-6">
+            <h2 className="font-semibold text-slate-800 mb-1">Invite by Email</h2>
+            <p className="text-xs text-slate-400 mb-4">
+              Send an invitation to someone who hasn't registered yet.
+              Email delivery is stubbed — no SMTP configured.
+            </p>
+            <form onSubmit={handleInvite} className="flex gap-2">
+              <input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)}
+                className="input flex-1" type="email" placeholder="someone@example.com" required />
+              <button type="submit" disabled={inviteLoading} className="btn-secondary whitespace-nowrap">
+                {inviteLoading ? 'Sending...' : 'Send Invite'}
+              </button>
+            </form>
+            {inviteSuccess && (
+              <div className="mt-3 p-2 bg-blue-50 border border-blue-200 text-blue-700 rounded text-sm">
+                ✉️ {inviteSuccess}
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
     </div>
