@@ -19,9 +19,6 @@ export default function TeamDetailPage() {
   const [editDesc, setEditDesc] = useState('');
   const [editLoading, setEditLoading] = useState(false);
   const [editError, setEditError] = useState('');
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteLoading, setInviteLoading] = useState(false);
-  const [inviteSuccess, setInviteSuccess] = useState('');
 
   useEffect(() => {
     api.get('/teams/' + id).then(r => setTeam(r.data)).catch(() => setTeam(null)).finally(() => setLoading(false));
@@ -62,31 +59,6 @@ export default function TeamDetailPage() {
       setEditing(false);
     } catch (err) { setEditError(err.response?.data?.error || 'Failed to update.'); }
     finally { setEditLoading(false); }
-  };
-
-  // Stubbed invite — no SMTP
-  const handleInvite = async (e) => {
-    e.preventDefault();
-    setInviteLoading(true);
-    setInviteSuccess('');
-
-    await new Promise((r) => setTimeout(r, 800));
-
-    console.log(
-      '[INVITE STUB] Invitation would be sent to: ' +
-        inviteEmail +
-        ' for team: ' +
-        team?.name
-    );
-
-    setInviteSuccess(
-      'Invitation sent to ' +
-        inviteEmail +
-        ' (stubbed — no SMTP configured)'
-    );
-
-    setInviteEmail('');
-    setInviteLoading(false);
   };
 
   if (loading) return (
@@ -175,122 +147,33 @@ export default function TeamDetailPage() {
 
           {isCreator && (
             <form onSubmit={handleAddMember} style={{ display:'flex', gap:10, marginBottom:16 }}>
-              <input
-                value={memberEmail}
-                onChange={e => setMemberEmail(e.target.value)}
-                type="email"
-                placeholder="Add member by email"
-                required
-                style={{ ...inputStyle, flex:1 }}
-              />
-              <button type="submit" disabled={addLoading} style={btnPrimary}>
-                {addLoading ? '…' : 'Add'}
-              </button>
+              <input value={memberEmail} onChange={e => setMemberEmail(e.target.value)}
+                type="email" placeholder="Add member by email" required style={{ ...inputStyle, flex:1 }} />
+              <button type="submit" disabled={addLoading} style={btnPrimary}>{addLoading ? '…' : 'Add'}</button>
             </form>
           )}
-
-          {addError && (
-            <p style={{ color:'#f85149', fontSize:13, marginBottom:10 }}>
-              {addError}
-            </p>
-          )}
-
-          {addSuccess && (
-            <p style={{ color:'#3fb950', fontSize:13, marginBottom:10 }}>
-              {addSuccess}
-            </p>
-          )}
+          {addError   && <p style={{ color:'#f85149', fontSize:13, marginBottom:10 }}>{addError}</p>}
+          {addSuccess && <p style={{ color:'#3fb950', fontSize:13, marginBottom:10 }}>{addSuccess}</p>}
 
           <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
             {team.members?.map(m => (
-              <div
-                key={m.id}
-                style={{
-                  display:'flex',
-                  alignItems:'center',
-                  justifyContent:'space-between',
-                  padding:'10px 12px',
-                  borderRadius:8,
-                  background:'rgba(255,255,255,0.02)',
-                  border:'1px solid #21262d'
-                }}
-              >
+              <div key={m.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', borderRadius:8, background:'rgba(255,255,255,0.02)', border:'1px solid #21262d' }}>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <div
-                    style={{
-                      width:32,
-                      height:32,
-                      borderRadius:'50%',
-                      background:'#2563eb',
-                      display:'flex',
-                      alignItems:'center',
-                      justifyContent:'center',
-                      fontSize:13,
-                      fontWeight:700,
-                      color:'#fff',
-                      flexShrink:0
-                    }}
-                  >
+                  <div style={{ width:32, height:32, borderRadius:'50%', background:'#2563eb', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, color:'#fff', flexShrink:0 }}>
                     {m.username[0].toUpperCase()}
                   </div>
-
                   <div>
-                    <p
-                      style={{
-                        fontSize:14,
-                        fontWeight:600,
-                        color:'#c9d1d9',
-                        margin:0
-                      }}
-                    >
-                      {m.username}
-                    </p>
-
-                    <p
-                      style={{
-                        fontSize:12,
-                        color:'#484f58',
-                        margin:0
-                      }}
-                    >
-                      {m.email}
-                    </p>
+                    <p style={{ fontSize:14, fontWeight:600, color:'#c9d1d9', margin:0 }}>{m.username}</p>
+                    <p style={{ fontSize:12, color:'#484f58', margin:0 }}>{m.email}</p>
                   </div>
                 </div>
-
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <span
-                    style={{
-                      fontSize:11,
-                      fontWeight:600,
-                      padding:'2px 8px',
-                      borderRadius:20,
-                      background:
-                        m.role === 'creator'
-                          ? 'rgba(37,99,235,0.2)'
-                          : 'rgba(255,255,255,0.06)',
-                      color:
-                        m.role === 'creator'
-                          ? '#58a6ff'
-                          : '#8b949e'
-                    }}
-                  >
+                  <span style={{ fontSize:11, fontWeight:600, padding:'2px 8px', borderRadius:20, background: m.role==='creator' ? 'rgba(37,99,235,0.2)' : 'rgba(255,255,255,0.06)', color: m.role==='creator' ? '#58a6ff' : '#8b949e' }}>
                     {m.role}
                   </span>
-
                   {isCreator && m.id !== user.id && (
-                    <button
-                      onClick={() => handleRemoveMember(m.id, m.username)}
-                      style={{
-                        background:'none',
-                        border:'none',
-                        cursor:'pointer',
-                        color:'#f85149',
-                        fontSize:12,
-                        fontWeight:600,
-                        padding:'2px 6px'
-                      }}
-                    >
+                    <button onClick={() => handleRemoveMember(m.id, m.username)}
+                      style={{ background:'none', border:'none', cursor:'pointer', color:'#f85149', fontSize:12, fontWeight:600, padding:'2px 6px' }}>
                       Remove
                     </button>
                   )}
@@ -300,58 +183,10 @@ export default function TeamDetailPage() {
           </div>
         </div>
 
-        {/* Stubbed Email Invite */}
-        {isCreator && (
-          <div style={{ ...card, marginTop:16 }}>
-            <h2 style={sectionTitle}>Email Invitations (Stubbed)</h2>
-
-            <p
-              style={{
-                color:'#8b949e',
-                fontSize:13,
-                marginTop:0,
-                marginBottom:16
-              }}
-            >
-              Demonstration feature only. No real emails are sent because SMTP is not configured.
-            </p>
-
-            <form
-              onSubmit={handleInvite}
-              style={{ display:'flex', gap:10 }}
-            >
-              <input
-                type="email"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                placeholder="Enter email address"
-                required
-                style={{ ...inputStyle, flex:1 }}
-              />
-
-              <button
-                type="submit"
-                disabled={inviteLoading}
-                style={btnPrimary}
-              >
-                {inviteLoading ? 'Sending...' : 'Send Invite'}
-              </button>
-            </form>
-
-            {inviteSuccess && (
-              <p
-                style={{
-                  color:'#3fb950',
-                  fontSize:13,
-                  marginTop:12,
-                  marginBottom:0
-                }}
-              >
-                {inviteSuccess}
-              </p>
-            )}
-          </div>
-        )}
+      </div>
+    </div>
+  );
+}
 
 const card       = { background:'#161b22', border:'1px solid #30363d', borderRadius:12, padding:'24px' };
 const labelStyle = { display:'block', fontSize:13, fontWeight:600, color:'#c9d1d9', marginBottom:6 };
