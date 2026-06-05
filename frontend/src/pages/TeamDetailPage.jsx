@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../api';
-import Navbar from '../components/Navbar';
 import { useAuth } from '../context/AuthContext';
 
 export default function TeamDetailPage() {
@@ -14,80 +13,66 @@ export default function TeamDetailPage() {
   const [addError, setAddError] = useState('');
   const [addLoading, setAddLoading] = useState(false);
   const [addSuccess, setAddSuccess] = useState('');
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteSuccess, setInviteSuccess] = useState('');
-  const [inviteLoading, setInviteLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editDesc, setEditDesc] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
+  const [editError, setEditError] = useState('');
 
   useEffect(() => {
-    api.get('/teams/' + id)
-      .then((res) => setTeam(res.data))
-      .catch(() => setTeam(null))
-      .finally(() => setLoading(false));
+    api.get('/teams/' + id).then(r => setTeam(r.data)).catch(() => setTeam(null)).finally(() => setLoading(false));
   }, [id]);
 
-  const handleAddMember = async (e) => {
-    e.preventDefault();
-    setAddError(''); setAddSuccess('');
-    setAddLoading(true);
+  const handleAddMember = async e => {
+    e.preventDefault(); setAddError(''); setAddSuccess(''); setAddLoading(true);
     try {
       const res = await api.post('/teams/' + id + '/members', { email: memberEmail });
-      setTeam((prev) => ({ ...prev, members: [...prev.members, res.data.user] }));
-      setAddSuccess(res.data.message);
-      setMemberEmail('');
-    } catch (err) {
-      setAddError(err.response?.data?.error || 'Failed to add member.');
-    } finally {
-      setAddLoading(false);
-    }
+      setTeam(p => ({ ...p, members: [...p.members, res.data.user] }));
+      setAddSuccess(res.data.message); setMemberEmail('');
+    } catch (err) { setAddError(err.response?.data?.error || 'Failed to add member.'); }
+    finally { setAddLoading(false); }
   };
 
-  const handleRemoveMember = async (userId, username) => {
+  const handleRemoveMember = async (uid, username) => {
     if (!confirm('Remove ' + username + ' from the team?')) return;
     try {
-      await api.delete('/teams/' + id + '/members/' + userId);
-      setTeam((prev) => ({ ...prev, members: prev.members.filter((m) => m.id !== userId) }));
-    } catch (err) {
-      alert(err.response?.data?.error || 'Failed to remove member.');
-    }
+      await api.delete('/teams/' + id + '/members/' + uid);
+      setTeam(p => ({ ...p, members: p.members.filter(m => m.id !== uid) }));
+    } catch (err) { alert(err.response?.data?.error || 'Failed to remove.'); }
   };
 
   const handleDeleteTeam = async () => {
     if (!confirm('Delete this team and all its tasks? This cannot be undone.')) return;
     setDeleteLoading(true);
-    try {
-      await api.delete('/teams/' + id);
-      navigate('/dashboard');
-    } catch (err) {
-      alert(err.response?.data?.error || 'Failed to delete team.');
-      setDeleteLoading(false);
-    }
+    try { await api.delete('/teams/' + id); navigate('/dashboard'); }
+    catch (err) { alert(err.response?.data?.error || 'Failed to delete.'); setDeleteLoading(false); }
   };
 
-  // Stubbed invite — no SMTP
-  const handleInvite = async (e) => {
-    e.preventDefault();
-    setInviteLoading(true);
-    setInviteSuccess('');
-    await new Promise((r) => setTimeout(r, 800));
-    console.log('[INVITE STUB] Invitation would be sent to: ' + inviteEmail + ' for team: ' + (team?.name));
-    setInviteSuccess('Invitation sent to ' + inviteEmail + ' (stubbed — no SMTP configured)');
-    setInviteEmail('');
-    setInviteLoading(false);
+  const startEdit = () => { setEditName(team.name); setEditDesc(team.description || ''); setEditError(''); setEditing(true); };
+
+  const handleEditTeam = async e => {
+    e.preventDefault(); setEditError(''); setEditLoading(true);
+    try {
+      const res = await api.put('/teams/' + id, { name: editName, description: editDesc });
+      setTeam(p => ({ ...p, name: res.data.name, description: res.data.description }));
+      setEditing(false);
+    } catch (err) { setEditError(err.response?.data?.error || 'Failed to update.'); }
+    finally { setEditLoading(false); }
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin" />
+    <div style={{ minHeight:'100vh', background:'#0d1117', display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <div style={{ width:32, height:32, border:'3px solid #2563eb', borderTopColor:'transparent', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
+      <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
     </div>
   );
 
   if (!team) return (
-    <div className="min-h-screen bg-slate-50">
-      <Navbar />
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <p className="text-slate-500">Team not found or access denied.</p>
-        <Link to="/dashboard" className="btn-primary inline-block mt-4">Back to Dashboard</Link>
+    <div style={{ minHeight:'100vh', background:'#0d1117', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'DM Sans,sans-serif' }}>
+      <div style={{ textAlign:'center' }}>
+        <p style={{ color:'#8b949e', marginBottom:16 }}>Team not found or access denied.</p>
+        <Link to="/dashboard" style={{ color:'#58a6ff', textDecoration:'none', fontWeight:600 }}>← Back to Dashboard</Link>
       </div>
     </div>
   );
@@ -95,96 +80,118 @@ export default function TeamDetailPage() {
   const isCreator = team.my_role === 'creator';
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <Navbar />
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        <div className="mb-4">
-          <Link to="/dashboard" className="text-sm text-slate-500 hover:text-brand-600">← Dashboard</Link>
+    <div style={{ minHeight:'100vh', background:'#0d1117', fontFamily:'DM Sans,system-ui,sans-serif', color:'#c9d1d9' }}>
+      {/* Topbar */}
+      <header style={{ background:'#161b22', borderBottom:'1px solid #21262d', padding:'12px 24px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:16 }}>
+          <Link to="/dashboard" style={{ color:'#8b949e', textDecoration:'none', fontSize:13, display:'flex', alignItems:'center', gap:6 }}>
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>
+            Dashboard
+          </Link>
+          <span style={{ color:'#30363d' }}>/</span>
+          <span style={{ color:'#c9d1d9', fontSize:13, fontWeight:600 }}>{team.name}</span>
         </div>
-
-        {/* Team Header */}
-        <div className="card p-6 mb-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">{team.name}</h1>
-              {team.description && <p className="text-slate-500 mt-1">{team.description}</p>}
-              <p className="text-xs text-slate-400 mt-2">Created by {team.creator_name}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className={"text-xs font-medium px-2 py-1 rounded-full " + (isCreator ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-600')}>
-                {isCreator ? 'Creator' : 'Member'}
-              </span>
-              {isCreator && (
-                <button onClick={handleDeleteTeam} disabled={deleteLoading}
-                  className="btn-danger text-xs py-1 px-3">
-                  {deleteLoading ? '...' : 'Delete Team'}
-                </button>
-              )}
-            </div>
+        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+          <div style={{ width:28, height:28, background:'#2563eb', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <svg width="15" height="15" fill="none" stroke="white" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
           </div>
+          <span style={{ fontWeight:700, fontSize:15, color:'#fff' }}>Task <span style={{color:'#58a6ff'}}>Manager</span></span>
+        </div>
+      </header>
+
+      <div style={{ maxWidth:680, margin:'0 auto', padding:'32px 16px' }}>
+
+        {/* Team header card */}
+        <div style={card}>
+          {editing ? (
+            <form onSubmit={handleEditTeam} style={{ display:'flex', flexDirection:'column', gap:14 }}>
+              <div>
+                <label style={labelStyle}>Team Name</label>
+                <input value={editName} onChange={e => setEditName(e.target.value)} required style={inputStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Description</label>
+                <textarea value={editDesc} onChange={e => setEditDesc(e.target.value)} rows={2} style={{ ...inputStyle, resize:'none' }} />
+              </div>
+              {editError && <p style={{ color:'#f85149', fontSize:13 }}>{editError}</p>}
+              <div style={{ display:'flex', gap:10 }}>
+                <button type="button" onClick={() => setEditing(false)} style={btnSecondary}>Cancel</button>
+                <button type="submit" disabled={editLoading} style={btnPrimary}>{editLoading ? 'Saving…' : 'Save Changes'}</button>
+              </div>
+            </form>
+          ) : (
+            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12 }}>
+              <div>
+                <h1 style={{ fontSize:22, fontWeight:700, color:'#fff', margin:'0 0 4px' }}>{team.name}</h1>
+                {team.description && <p style={{ color:'#8b949e', fontSize:13, margin:'0 0 8px' }}>{team.description}</p>}
+                <p style={{ fontSize:12, color:'#484f58', margin:0 }}>Created by {team.creator_name}</p>
+              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+                <span style={{ fontSize:12, fontWeight:600, padding:'3px 10px', borderRadius:20, background: isCreator ? 'rgba(37,99,235,0.2)' : 'rgba(255,255,255,0.06)', color: isCreator ? '#58a6ff' : '#8b949e' }}>
+                  {isCreator ? 'Creator' : 'Member'}
+                </span>
+                {isCreator && <>
+                  <button onClick={startEdit} style={{ ...btnSecondary, padding:'5px 12px', fontSize:12 }}>✏️ Edit</button>
+                  <button onClick={handleDeleteTeam} disabled={deleteLoading} style={{ ...btnDanger, padding:'5px 12px', fontSize:12 }}>
+                    {deleteLoading ? '…' : 'Delete'}
+                  </button>
+                </>}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Members */}
-        <div className="card p-6 mb-6">
-          <h2 className="font-semibold text-slate-800 mb-4">Members ({team.members?.length || 0})</h2>
+        {/* Members card */}
+        <div style={{ ...card, marginTop:16 }}>
+          <h2 style={sectionTitle}>Members ({team.members?.length || 0})</h2>
 
           {isCreator && (
-            <form onSubmit={handleAddMember} className="mb-4 flex gap-2">
-              <input value={memberEmail} onChange={(e) => setMemberEmail(e.target.value)}
-                className="input flex-1" type="email" placeholder="Add existing user by email" required />
-              <button type="submit" disabled={addLoading} className="btn-primary whitespace-nowrap">
-                {addLoading ? '...' : 'Add'}
-              </button>
+            <form onSubmit={handleAddMember} style={{ display:'flex', gap:10, marginBottom:16 }}>
+              <input value={memberEmail} onChange={e => setMemberEmail(e.target.value)}
+                type="email" placeholder="Add member by email" required style={{ ...inputStyle, flex:1 }} />
+              <button type="submit" disabled={addLoading} style={btnPrimary}>{addLoading ? '…' : 'Add'}</button>
             </form>
           )}
+          {addError   && <p style={{ color:'#f85149', fontSize:13, marginBottom:10 }}>{addError}</p>}
+          {addSuccess && <p style={{ color:'#3fb950', fontSize:13, marginBottom:10 }}>{addSuccess}</p>}
 
-          {addError && <div className="mb-3 p-2 bg-red-50 border border-red-200 text-red-700 rounded text-sm">{addError}</div>}
-          {addSuccess && <div className="mb-3 p-2 bg-green-50 border border-green-200 text-green-700 rounded text-sm">{addSuccess}</div>}
-
-          <ul className="divide-y divide-slate-100">
-            {team.members?.map((m) => (
-              <li key={m.id} className="flex items-center justify-between py-3">
-                <div>
-                  <p className="font-medium text-slate-800">{m.username}</p>
-                  <p className="text-xs text-slate-400">{m.email}</p>
+          <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
+            {team.members?.map(m => (
+              <div key={m.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', borderRadius:8, background:'rgba(255,255,255,0.02)', border:'1px solid #21262d' }}>
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <div style={{ width:32, height:32, borderRadius:'50%', background:'#2563eb', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, color:'#fff', flexShrink:0 }}>
+                    {m.username[0].toUpperCase()}
+                  </div>
+                  <div>
+                    <p style={{ fontSize:14, fontWeight:600, color:'#c9d1d9', margin:0 }}>{m.username}</p>
+                    <p style={{ fontSize:12, color:'#484f58', margin:0 }}>{m.email}</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className={"text-xs px-2 py-0.5 rounded-full " + (m.role === 'creator' ? 'bg-brand-100 text-brand-700' : 'bg-slate-100 text-slate-600')}>
+                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <span style={{ fontSize:11, fontWeight:600, padding:'2px 8px', borderRadius:20, background: m.role==='creator' ? 'rgba(37,99,235,0.2)' : 'rgba(255,255,255,0.06)', color: m.role==='creator' ? '#58a6ff' : '#8b949e' }}>
                     {m.role}
                   </span>
                   {isCreator && m.id !== user.id && (
                     <button onClick={() => handleRemoveMember(m.id, m.username)}
-                      className="text-xs text-red-500 hover:text-red-700 font-medium">Remove</button>
+                      style={{ background:'none', border:'none', cursor:'pointer', color:'#f85149', fontSize:12, fontWeight:600, padding:'2px 6px' }}>
+                      Remove
+                    </button>
                   )}
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
 
-        {/* Invite by Email (stubbed) */}
-        {isCreator && (
-          <div className="card p-6">
-            <h2 className="font-semibold text-slate-800 mb-1">Invite by Email</h2>
-            <p className="text-xs text-slate-400 mb-4">
-              Send an invitation to someone who hasn't registered yet.
-              Email delivery is stubbed — no SMTP configured.
-            </p>
-            <form onSubmit={handleInvite} className="flex gap-2">
-              <input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)}
-                className="input flex-1" type="email" placeholder="someone@example.com" required />
-              <button type="submit" disabled={inviteLoading} className="btn-secondary whitespace-nowrap">
-                {inviteLoading ? 'Sending...' : 'Send Invite'}
-              </button>
-            </form>
-            {inviteSuccess && (
-              <div className="mt-3 p-2 bg-blue-50 border border-blue-200 text-blue-700 rounded text-sm">
-                ✉️ {inviteSuccess}
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );
 }
+
+const card       = { background:'#161b22', border:'1px solid #30363d', borderRadius:12, padding:'24px' };
+const labelStyle = { display:'block', fontSize:13, fontWeight:600, color:'#c9d1d9', marginBottom:6 };
+const inputStyle = { width:'100%', background:'#0d1117', border:'1px solid #30363d', borderRadius:8, padding:'9px 12px', fontSize:13, color:'#e6edf3', outline:'none', fontFamily:'inherit', boxSizing:'border-box' };
+const btnPrimary   = { background:'#2563eb', color:'#fff', border:'none', borderRadius:8, padding:'8px 16px', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap' };
+const btnSecondary = { background:'transparent', color:'#c9d1d9', border:'1px solid #30363d', borderRadius:8, padding:'8px 16px', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap' };
+const btnDanger    = { background:'rgba(248,81,73,0.1)', color:'#f85149', border:'1px solid rgba(248,81,73,0.3)', borderRadius:8, padding:'8px 16px', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap' };
+const sectionTitle = { fontSize:15, fontWeight:700, color:'#fff', margin:'0 0 16px' };

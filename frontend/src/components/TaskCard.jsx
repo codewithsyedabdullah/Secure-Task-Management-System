@@ -77,7 +77,7 @@ export default function TaskCard({ task, onEdit, onDelete, onStatusUpdate }) {
           {STATUS_LABELS[task.status] || task.status}
         </span>
         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${PRIORITY_BADGE[task.priority] || PRIORITY_BADGE.medium}`}>
-          {task.priority}
+          {task.priority?.charAt(0).toUpperCase() + task.priority?.slice(1)}
         </span>
         {task.team_name && (
           <span className="bg-purple-900/50 text-purple-300 text-xs font-medium px-2 py-0.5 rounded-full">

@@ -1,13 +1,16 @@
-# Team Task Manager
+# Task Manager
 
-A full-stack team task management web app built with React, Node.js/Express, PostgreSQL, and PassportJS session authentication.
+A full-stack task management web app built for teams. Supports role-based access, multi-assignee tasks, due date reminders, and real-time collaboration across teams.
 
 ## Features
 
-- **Authentication** — Register/login with bcrypt passwords, PassportJS local strategy, HTTP-only session cookies
-- **Teams** — Create teams, add/remove members by email, role-based access (only creators can delete teams/manage members)
-- **Tasks** — Create, assign, update, delete tasks within teams; filter by team, status, assignee; full-text search
-- **Security** — All non-auth routes protected by auth middleware; input validated with express-validator; no plaintext passwords; sessions stored in PostgreSQL (production)
+- **Authentication** — Secure register/login with bcrypt-hashed passwords and session-based auth
+- **Teams** — Create teams, add/remove members by email, edit team details
+- **Tasks** — Create, assign (to multiple members), update status, filter, and delete tasks
+- **Role-based access** — Only team creators can create/delete tasks and manage members
+- **Due date reminders** — Dashboard shows overdue, due-today, and upcoming task alerts (per user)
+- **Multi-assignee** — Tasks can be assigned to one or more team members
+- **Responsive** — Works on mobile, tablet, and desktop
 
 ## Tech Stack
 
@@ -15,7 +18,7 @@ A full-stack team task management web app built with React, Node.js/Express, Pos
 |---|---|
 | Frontend | React 18, Vite, Tailwind CSS |
 | Backend | Node.js, Express |
-| Auth | PassportJS (local), express-session |
+| Auth | PassportJS (local strategy), express-session |
 | Database | PostgreSQL |
 | Validation | express-validator |
 | Session Store | connect-pg-simple (prod) / memory (dev) |
@@ -25,34 +28,30 @@ A full-stack team task management web app built with React, Node.js/Express, Pos
 ```
 /
 ├── backend/
-│   ├── config/passport.js     # Passport local strategy
+│   ├── config/passport.js
 │   ├── db/
-│   │   ├── pool.js            # PostgreSQL connection pool
-│   │   └── schema.sql         # DB init script
-│   ├── middleware/auth.js     # isAuthenticated guard
+│   │   ├── pool.js
+│   │   ├── schema.sql
+│   │   └── migrate_multi_assignee.sql
+│   ├── middleware/auth.js
 │   ├── routes/
-│   │   ├── auth.js            # POST /auth/register, /auth/login, /auth/logout, GET /auth/me
-│   │   ├── teams.js           # CRUD /teams + /teams/:id/members
-│   │   └── tasks.js           # CRUD /tasks with filtering
-│   ├── server.js
-│   ├── package.json
-│   └── .env.example
+│   │   ├── auth.js
+│   │   ├── teams.js
+│   │   └── tasks.js
+│   └── server.js
 └── frontend/
-    ├── src/
-    │   ├── context/AuthContext.jsx
-    │   ├── pages/
-    │   │   ├── LoginPage.jsx
-    │   │   ├── RegisterPage.jsx
-    │   │   ├── DashboardPage.jsx
-    │   │   └── TeamDetailPage.jsx
-    │   ├── components/
-    │   │   ├── Navbar.jsx
-    │   │   ├── TaskCard.jsx
-    │   │   ├── TaskModal.jsx
-    │   │   └── TeamModal.jsx
-    │   ├── api.js
-    │   └── main.jsx
-    └── package.json
+    └── src/
+        ├── context/AuthContext.jsx
+        ├── pages/
+        │   ├── LoginPage.jsx
+        │   ├── RegisterPage.jsx
+        │   ├── DashboardPage.jsx
+        │   └── TeamDetailPage.jsx
+        └── components/
+            ├── TaskCard.jsx
+            ├── TaskModal.jsx
+            ├── TeamModal.jsx
+            └── ReminderBanner.jsx
 ```
 
 ## Local Setup
@@ -61,29 +60,23 @@ A full-stack team task management web app built with React, Node.js/Express, Pos
 - Node.js 18+
 - PostgreSQL 14+
 
-### 1. Clone the repo
+### 1. Clone
 ```bash
 git clone https://github.com/YOUR_USERNAME/Secure-Task-Management-System.git
 cd Secure-Task-Management-System
 ```
 
-### 2. Set up the database
+### 2. Database
 ```bash
-# Create the database
 psql -U postgres -c "CREATE DATABASE teamtaskdb;"
-
-# Run schema
 psql -U postgres -d teamtaskdb -f backend/db/schema.sql
+psql -U postgres -d teamtaskdb -f backend/db/migrate_multi_assignee.sql
 ```
 
-### 3. Configure backend environment
+### 3. Backend environment
 ```bash
-cd backend
-cp .env.example .env
-# Edit .env with your PostgreSQL credentials and a strong SESSION_SECRET
+cd backend && cp .env.example .env
 ```
-
-`.env` values:
 ```
 PORT=5000
 DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/teamtaskdb
@@ -92,100 +85,69 @@ NODE_ENV=development
 FRONTEND_URL=http://localhost:5173
 ```
 
-### 4. Install and run backend
+### 4. Run backend
 ```bash
-cd backend
-npm install
-npm run dev
-# Server starts on http://localhost:5000
+cd backend && npm install && npm run dev
 ```
 
-### 5. Install and run frontend
+### 5. Run frontend
 ```bash
-cd frontend
-npm install
-npm run dev
-# App starts on http://localhost:5173
+cd frontend && npm install && npm run dev
 ```
 
 ## API Endpoints
 
-### Auth (`/auth`)
+### Auth
 | Method | Path | Description |
 |---|---|---|
-| POST | /auth/register | Register new user |
+| POST | /auth/register | Register |
 | POST | /auth/login | Login |
 | POST | /auth/logout | Logout |
-| GET | /auth/me | Get current user |
+| GET | /auth/me | Current user |
 
-### Teams (`/teams`) — all protected
+### Teams (protected)
 | Method | Path | Description |
 |---|---|---|
-| GET | /teams | List my teams |
+| GET | /teams | My teams |
 | POST | /teams | Create team |
 | GET | /teams/:id | Team + members |
 | PUT | /teams/:id | Update team (creator only) |
 | DELETE | /teams/:id | Delete team (creator only) |
-| POST | /teams/:id/members | Add member by email (creator only) |
-| DELETE | /teams/:id/members/:userId | Remove member (creator only) |
+| POST | /teams/:id/members | Add member by email |
+| DELETE | /teams/:id/members/:userId | Remove member |
 
-### Tasks (`/tasks`) — all protected
+### Tasks (protected)
 | Method | Path | Description |
 |---|---|---|
-| GET | /tasks | List tasks (supports `?team_id`, `?assigned_to`, `?status`, `?search`) |
-| POST | /tasks | Create task |
+| GET | /tasks | List tasks (`?team_id`, `?assigned_to`, `?status`, `?search`) |
+| GET | /tasks/reminders | My overdue/due-today tasks |
+| POST | /tasks | Create task (creator only) |
 | GET | /tasks/:id | Single task |
-| PUT | /tasks/:id | Update task |
-| DELETE | /tasks/:id | Delete task (creator or team creator) |
+| PUT | /tasks/:id | Update task (creator only) |
+| PUT | /tasks/:id/status | Update status (assignee or creator) |
+| DELETE | /tasks/:id | Delete task (creator only) |
 
-## Deployment (Free — Railway + Vercel)
+## Deployment
 
-### Backend + PostgreSQL on Railway (Free tier)
+### Backend on Railway
+1. New Project → Deploy from GitHub → select repo
+2. Add PostgreSQL service
+3. Set Variables: `DATABASE_URL`, `SESSION_SECRET`, `NODE_ENV=production`, `FRONTEND_URL`
+4. Root Directory: `backend`, Start Command: `npm start`
+5. Run `schema.sql` then `migrate_multi_assignee.sql` in Railway's Console tab
 
-1. Go to [railway.app](https://railway.app) → sign up with GitHub
-2. **New Project** → **Deploy from GitHub repo** → select this repo
-3. Add a **PostgreSQL** service to the project (Railway provides free PostgreSQL)
-4. Go to your web service **Variables** and add:
-   ```
-   DATABASE_URL=<copy from Railway PostgreSQL → Connect → DATABASE_URL>
-   SESSION_SECRET=your_long_random_secret_here
-   NODE_ENV=production
-   FRONTEND_URL=https://your-vercel-app.vercel.app
-   PORT=5000
-   ```
-5. Set **Root Directory** to `backend` and **Start Command** to `npm start`
-6. After deploy, run the schema: Railway → PostgreSQL → **Query** tab → paste contents of `backend/db/schema.sql` and run
+### Frontend on Vercel
+1. New Project → Import repo
+2. Root Directory: `frontend`
+3. Add env var: `VITE_API_URL=https://your-railway-url.railway.app`
+4. Deploy
 
-### Frontend on Vercel (Free tier)
+## Security
 
-1. Go to [vercel.com](https://vercel.com) → sign up with GitHub
-2. **New Project** → Import this repo
-3. Set **Root Directory** to `frontend`
-4. Add environment variable:
-   ```
-   VITE_API_URL=https://your-railway-backend-url.railway.app
-   ```
-5. Deploy — Vercel auto-detects Vite
-
-### After deploying:
-- Update Railway backend `FRONTEND_URL` with your Vercel URL
-- Update Vercel `VITE_API_URL` with your Railway URL
-
-## Security Practices
-
-- Passwords hashed with **bcrypt** (cost factor 12) — never stored in plaintext
-- Sessions stored server-side with **HTTP-only cookies** (not accessible via JavaScript)
-- **Secure** cookie flag enabled in production
-- All non-auth routes protected by `isAuthenticated` middleware
-- Input validated and sanitized with **express-validator** on every route
-- SQL injection prevented via **parameterized queries** (no string interpolation)
-- Role-based access: only team **creators** can delete teams or manage members
-- CORS configured to only allow the frontend origin
-
-## Bonus Features Implemented
-
-- **Task due date reminders** — overdue tasks highlighted in red on dashboard
-- **Role-based access** — only team creators can delete teams and manage members
-- **Invite by email** — add members by entering their registered email address
-
-
+- Passwords hashed with **bcrypt** (cost factor 12)
+- HTTP-only session cookies (not accessible via JS)
+- Secure cookie flag in production
+- All routes protected by `isAuthenticated` middleware
+- Input validated with **express-validator** on every route
+- SQL injection prevented via **parameterized queries**
+- CORS restricted to frontend origin only
