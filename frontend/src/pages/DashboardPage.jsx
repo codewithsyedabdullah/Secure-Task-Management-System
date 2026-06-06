@@ -14,6 +14,7 @@ export default function DashboardPage() {
   const [myTasks, setMyTasks] = useState([]);
   const [allTasks, setAllTasks] = useState([]);
   const [allMembers, setAllMembers] = useState([]);
+  const [teamMembersMap, setTeamMembersMap] = useState({}); // teamId -> members[]
   const [loading, setLoading] = useState(true);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showTeamModal, setShowTeamModal] = useState(false);
@@ -42,13 +43,16 @@ export default function DashboardPage() {
       const res = await api.get('/teams');
       setTeams(res.data);
       const memberMap = {};
+      const membersPerTeam = {};
       await Promise.all(res.data.map(async team => {
         try {
           const tr = await api.get('/teams/' + team.id);
           tr.data.members.forEach(m => { memberMap[m.id] = m; });
+          membersPerTeam[team.id] = tr.data.members;
         } catch {}
       }));
       setAllMembers(Object.values(memberMap));
+      setTeamMembersMap(membersPerTeam);
     } catch {}
   };
 
@@ -315,16 +319,34 @@ export default function DashboardPage() {
             {/* Filters */}
             <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 18px', marginBottom: 16, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
               <p style={{ fontSize: 12, fontWeight: 600, opacity: 0.4, margin: 0, flexShrink: 0 }}>Filter:</p>
-              {[
-                { value: filterTeam,     onChange: v => setFilterTeam(v),     options: [['', 'All Teams'],     ...teams.map(t => [t.id, t.name])] },
-                { value: filterStatus,   onChange: v => setFilterStatus(v),   options: [['', 'All Status'],    ['todo','To Do'],['in_progress','In Progress'],['done','Done'],['need_help','Need Help'],['need_more_time','Need More Time']] },
-                { value: filterAssignee, onChange: v => setFilterAssignee(v), options: [['', 'All Assignees'], ...allMembers.map(m => [m.id, m.username])] },
-              ].map((sel, i) => (
-                <select key={i} value={sel.value} onChange={e => sel.onChange(e.target.value)}
-                  style={{ fontSize: 13, border: '1.5px solid rgba(8,8,8,0.12)', borderRadius: 8, padding: '7px 12px', background: 'var(--bg)', color: 'var(--text)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
-                  {sel.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                </select>
-              ))}
+
+              {/* Teams */}
+              <select value={filterTeam} onChange={e => { setFilterTeam(e.target.value); setFilterAssignee(''); }}
+                style={{ fontSize: 13, border: '1.5px solid rgba(8,8,8,0.12)', borderRadius: 8, padding: '7px 12px', background: 'var(--bg)', color: 'var(--text)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
+                <option value="">All Teams</option>
+                {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+              </select>
+
+              {/* Assignees — scoped to selected team if one is chosen */}
+              <select value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}
+                style={{ fontSize: 13, border: '1.5px solid rgba(8,8,8,0.12)', borderRadius: 8, padding: '7px 12px', background: 'var(--bg)', color: 'var(--text)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
+                <option value="">All Assignees</option>
+                {(filterTeam ? (teamMembersMap[filterTeam] || []) : allMembers).map(m => (
+                  <option key={m.id} value={m.id}>{m.username}</option>
+                ))}
+              </select>
+
+              {/* Status — at the end */}
+              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+                style={{ fontSize: 13, border: '1.5px solid rgba(8,8,8,0.12)', borderRadius: 8, padding: '7px 12px', background: 'var(--bg)', color: 'var(--text)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
+                <option value="">All Status</option>
+                <option value="todo">To Do</option>
+                <option value="in_progress">In Progress</option>
+                <option value="done">Done</option>
+                <option value="need_help">Need Help</option>
+                <option value="need_more_time">Need More Time</option>
+              </select>
+
               {(filterTeam || filterStatus || filterAssignee || search) && (
                 <button onClick={clearFilters}
                   style={{ fontSize: 12, color: '#080808', background: 'none', border: 'none', cursor: 'pointer', opacity: 0.4, fontFamily: 'inherit', textDecoration: 'underline', marginLeft: 'auto' }}>Clear</button>
