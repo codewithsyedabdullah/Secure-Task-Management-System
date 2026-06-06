@@ -64,17 +64,17 @@ export default function TeamDetailPage() {
   };
 
   if (loading) return (
-    <div style={{ minHeight:'100vh', background:'#0d1117', display:'flex', alignItems:'center', justifyContent:'center' }}>
+    <div style={{ minHeight:'100vh', background:'#F5F3EE', display:'flex', alignItems:'center', justifyContent:'center' }}>
       <div style={{ width:32, height:32, border:'3px solid #2563eb', borderTopColor:'transparent', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />
       <style>{'@keyframes spin{to{transform:rotate(360deg)}}'}</style>
     </div>
   );
 
   if (!team) return (
-    <div style={{ minHeight:'100vh', background:'#0d1117', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'DM Sans,sans-serif' }}>
+    <div style={{ minHeight:'100vh', background:'#F5F3EE', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'DM Sans,sans-serif' }}>
       <div style={{ textAlign:'center' }}>
-        <p style={{ color:'#8b949e', marginBottom:16 }}>Team not found or access denied.</p>
-        <Link to="/dashboard" style={{ color:'#58a6ff', textDecoration:'none', fontWeight:600 }}>← Back to Dashboard</Link>
+        <p style={{ color:'#080808', marginBottom:16 }}>Team not found or access denied.</p>
+        <Link to="/dashboard" style={{ color:'#080808', textDecoration:'none', fontWeight:600 }}>← Back to Dashboard</Link>
       </div>
     </div>
   );
@@ -82,22 +82,22 @@ export default function TeamDetailPage() {
   const isCreator = team.my_role === 'creator';
 
   return (
-    <div style={{ minHeight:'100vh', background:'#0d1117', fontFamily:'DM Sans,system-ui,sans-serif', color:'#c9d1d9' }}>
+    <div style={{ minHeight:'100vh', background:'#F5F3EE', fontFamily:"'Inter', sans-serif", color:'#080808' }}>
       {/* Topbar */}
-      <header style={{ background:'#161b22', borderBottom:'1px solid #21262d', padding:'12px 24px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+      <header style={{ background:'#fff', borderBottom:'1px solid #21262d', padding:'12px 24px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
         <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-          <Link to="/dashboard" style={{ color:'#8b949e', textDecoration:'none', fontSize:13, display:'flex', alignItems:'center', gap:6 }}>
+          <Link to="/dashboard" style={{ color:'#080808', textDecoration:'none', fontSize:13, display:'flex', alignItems:'center', gap:6 }}>
             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>
             Dashboard
           </Link>
           <span style={{ color:'#30363d' }}>/</span>
-          <span style={{ color:'#c9d1d9', fontSize:13, fontWeight:600 }}>{team.name}</span>
+          <span style={{ color:'#080808', fontSize:13, fontWeight:600 }}>{team.name}</span>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <div style={{ width:28, height:28, background:'#2563eb', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <div style={{ width:28, height:28, background:'#080808', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center' }}>
             <svg width="15" height="15" fill="none" stroke="white" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
           </div>
-          <span style={{ fontWeight:700, fontSize:15, color:'#fff' }}>Task <span style={{color:'#58a6ff'}}>Manager</span></span>
+          <span style={{ fontFamily:"'Anton', sans-serif", fontWeight:400, fontSize:18, color:'#080808' }}>Task <span style={{color:'#080808'}}>Manager</span></span>
         </div>
       </header>
 
@@ -124,12 +124,12 @@ export default function TeamDetailPage() {
           ) : (
             <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12 }}>
               <div>
-                <h1 style={{ fontSize:22, fontWeight:700, color:'#fff', margin:'0 0 4px' }}>{team.name}</h1>
-                {team.description && <p style={{ color:'#8b949e', fontSize:13, margin:'0 0 8px' }}>{team.description}</p>}
-                <p style={{ fontSize:12, color:'#484f58', margin:0 }}>Created by {team.creator_name}</p>
+                <h1 style={{ fontSize:22, fontWeight:700, color:'#080808', margin:'0 0 4px' }}>{team.name}</h1>
+                {team.description && <p style={{ color:'#080808', fontSize:13, margin:'0 0 8px' }}>{team.description}</p>}
+                <p style={{ fontSize:12, color:'rgba(8,8,8,0.35)', margin:0 }}>Created by {team.creator_name}</p>
               </div>
               <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
-                <span style={{ fontSize:12, fontWeight:600, padding:'3px 10px', borderRadius:20, background: isCreator ? 'rgba(37,99,235,0.2)' : 'rgba(255,255,255,0.06)', color: isCreator ? '#58a6ff' : '#8b949e' }}>
+                <span style={{ fontSize:12, fontWeight:600, padding:'3px 10px', borderRadius:20, background: isCreator ? 'rgba(37,99,235,0.2)' : 'rgba(255,255,255,0.06)', color: isCreator ? '#080808' : '#8b949e' }}>
                   {isCreator ? 'Creator' : 'Member'}
                 </span>
                 {isCreator && <>
@@ -154,6 +154,12 @@ export default function TeamDetailPage() {
                   type="email" placeholder="Add existing member by email" required style={{ ...inputStyle, flex:1 }} />
                 <button type="submit" disabled={addLoading} style={btnPrimary}>{addLoading ? '…' : 'Add'}</button>
               </form>
+              <button
+                onClick={() => setShowInviteModal(true)}
+                style={{ ...btnSecondary, fontSize:12, padding:'6px 14px', marginBottom:16, display:'inline-flex', alignItems:'center', gap:6 }}
+              >
+                ✉️ Invite via Email
+              </button>
             </>
           )}
           {addError   && <p style={{ color:'#f85149', fontSize:13, marginBottom:10 }}>{addError}</p>}
@@ -161,18 +167,18 @@ export default function TeamDetailPage() {
 
           <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
             {team.members?.map(m => (
-              <div key={m.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', borderRadius:8, background:'rgba(255,255,255,0.02)', border:'1px solid #21262d' }}>
+              <div key={m.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', borderRadius:8, background:'rgba(255,255,255,0.02)', border:'1px solid rgba(8,8,8,0.07)' }}>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <div style={{ width:32, height:32, borderRadius:'50%', background:'#2563eb', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, color:'#fff', flexShrink:0 }}>
+                  <div style={{ width:32, height:32, borderRadius:'50%', background:'#080808', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, color:'#080808', flexShrink:0 }}>
                     {m.username[0].toUpperCase()}
                   </div>
                   <div>
-                    <p style={{ fontSize:14, fontWeight:600, color:'#c9d1d9', margin:0 }}>{m.username}</p>
-                    <p style={{ fontSize:12, color:'#484f58', margin:0 }}>{m.email}</p>
+                    <p style={{ fontSize:14, fontWeight:600, color:'#080808', margin:0 }}>{m.username}</p>
+                    <p style={{ fontSize:12, color:'rgba(8,8,8,0.35)', margin:0 }}>{m.email}</p>
                   </div>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <span style={{ fontSize:11, fontWeight:600, padding:'2px 8px', borderRadius:20, background: m.role==='creator' ? 'rgba(37,99,235,0.2)' : 'rgba(255,255,255,0.06)', color: m.role==='creator' ? '#58a6ff' : '#8b949e' }}>
+                  <span style={{ fontSize:11, fontWeight:600, padding:'2px 8px', borderRadius:20, background: m.role==='creator' ? 'rgba(37,99,235,0.2)' : 'rgba(255,255,255,0.06)', color: m.role==='creator' ? '#080808' : '#8b949e' }}>
                     {m.role}
                   </span>
                   {isCreator && m.id !== user.id && (
@@ -183,16 +189,9 @@ export default function TeamDetailPage() {
                   )}
                 </div>
               </div>
-
             ))}
           </div>
         </div>
-        <button
-          onClick={() => setShowInviteModal(true)}
-          style={{ ...btnSecondary, fontSize:14, padding:'12px 24px', marginTop:24, width:'100%', display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}
-        >
-          ✉️ Invite Unregistered User by Email
-        </button>
 
       </div>
 
@@ -207,10 +206,10 @@ export default function TeamDetailPage() {
   );
 }
 
-const card       = { background:'#161b22', border:'1px solid #30363d', borderRadius:12, padding:'24px' };
-const labelStyle = { display:'block', fontSize:13, fontWeight:600, color:'#c9d1d9', marginBottom:6 };
-const inputStyle = { width:'100%', background:'#0d1117', border:'1px solid #30363d', borderRadius:8, padding:'9px 12px', fontSize:13, color:'#e6edf3', outline:'none', fontFamily:'inherit', boxSizing:'border-box' };
-const btnPrimary   = { background:'#2563eb', color:'#fff', border:'none', borderRadius:8, padding:'8px 16px', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap' };
-const btnSecondary = { background:'transparent', color:'#c9d1d9', border:'1px solid #30363d', borderRadius:8, padding:'8px 16px', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap' };
+const card       = { background:'#fff', border:'1px solid rgba(8,8,8,0.1)', borderRadius:12, padding:'24px' };
+const labelStyle = { display:'block', fontSize:13, fontWeight:600, color:'#080808', marginBottom:6 };
+const inputStyle = { width:'100%', background:'#F5F3EE', border:'1px solid rgba(8,8,8,0.1)', borderRadius:8, padding:'9px 12px', fontSize:13, color:'#080808', outline:'none', fontFamily:'inherit', boxSizing:'border-box' };
+const btnPrimary   = { background:'#080808', color:'#F5F3EE', border:'none', borderRadius:8, padding:'8px 16px', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap' };
+const btnSecondary = { background:'transparent', color:'#080808', border:'1px solid rgba(8,8,8,0.1)', borderRadius:8, padding:'8px 16px', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap' };
 const btnDanger    = { background:'rgba(248,81,73,0.1)', color:'#f85149', border:'1px solid rgba(248,81,73,0.3)', borderRadius:8, padding:'8px 16px', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap' };
-const sectionTitle = { fontSize:15, fontWeight:700, color:'#fff', margin:'0 0 16px' };
+const sectionTitle = { fontSize:15, fontWeight:700, color:'#080808', margin:'0 0 16px' };

@@ -2,12 +2,6 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const STEPS = [
-  { n: 1, text: 'Sign in to your account', active: true },
-  { n: 2, text: 'Access your teams & tasks' },
-  { n: 3, text: 'Collaborate with your team' },
-];
-
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -32,132 +26,98 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={S.page}>
-      {/* ── Left panel ── */}
-      <div style={S.left} className="auth-left">
-        <div style={S.leftInner}>
-          <Logo />
-          <div style={{ marginTop: 48 }}>
-            <h2 style={S.heroTitle}>Manage your team,<br />effortlessly.</h2>
-            <p style={S.heroSub}>Assign tasks, track progress, and collaborate — all in one place.</p>
+    <div style={{ minHeight: '100vh', background: '#F5F3EE', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column' }}>
+
+      {/* Header */}
+      <header style={{ padding: '20px 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Link to="/" style={{ fontFamily: "'Anton', sans-serif", fontSize: 22, color: '#080808', textDecoration: 'none' }}>TASKMANAGER</Link>
+        <p style={{ fontSize: 14, color: '#080808', opacity: 0.5, margin: 0 }}>
+          No account?{' '}
+          <Link to="/register" style={{ color: '#080808', fontWeight: 600, opacity: 1 }}>Sign up free</Link>
+        </p>
+      </header>
+
+      <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: 0 }} className="auth-grid">
+
+        {/* Left panel */}
+        <div style={{ padding: '64px 56px', display: 'flex', flexDirection: 'column', justifyContent: 'center', borderRight: '1px solid rgba(8,8,8,0.08)' }} className="auth-left-panel">
+          <h1 style={{ fontFamily: "'Anton', sans-serif", fontSize: 'clamp(48px, 5vw, 72px)', fontWeight: 400, lineHeight: 0.9, margin: '0 0 28px', color: '#080808' }}>
+            WELCOME<br />BACK /
+          </h1>
+          <p style={{ fontSize: 16, color: '#080808', opacity: 0.6, maxWidth: 360, lineHeight: 1.7, marginBottom: 40 }}>
+            Sign in to access your teams, tasks, and everything you left behind.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[
+              { n: 1, text: 'Sign in to your account', active: true },
+              { n: 2, text: 'Access your teams & tasks' },
+              { n: 3, text: 'Collaborate with your team' },
+            ].map(s => (
+              <div key={s.n} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 10, background: s.active ? 'rgba(8,8,8,0.06)' : 'transparent', border: s.active ? '1px solid rgba(8,8,8,0.12)' : '1px solid transparent' }}>
+                <div style={{ width: 26, height: 26, borderRadius: '50%', background: s.active ? '#080808' : 'rgba(8,8,8,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: s.active ? '#F5F3EE' : 'rgba(8,8,8,0.4)' }}>{s.n}</span>
+                </div>
+                <span style={{ fontSize: 13, color: '#080808', opacity: s.active ? 1 : 0.4, fontWeight: s.active ? 600 : 400 }}>{s.text}</span>
+              </div>
+            ))}
           </div>
-          <div style={{ marginTop: 40, display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {STEPS.map(s => <StepItem key={s.n} {...s} />)}
+        </div>
+
+        {/* Right panel */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 32px' }}>
+          <div style={{ width: '100%', maxWidth: 400 }}>
+            <h2 style={{ fontFamily: "'Anton', sans-serif", fontSize: 36, fontWeight: 400, margin: '0 0 6px', color: '#080808' }}>SIGN IN</h2>
+            <p style={{ fontSize: 14, color: '#080808', opacity: 0.5, margin: '0 0 32px' }}>Enter your credentials to continue.</p>
+
+            {serverError && (
+              <div style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)', color: '#dc2626', borderRadius: 8, padding: '12px 16px', fontSize: 13, marginBottom: 24 }}>{serverError}</div>
+            )}
+
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              <AuthField id="email" label="Email" type="email" placeholder="your@email.com"
+                value={form.email} onChange={v => { setForm(p => ({...p, email: v})); setErrors(p => ({...p, email: ''})); }} error={errors.email} />
+              <AuthField id="password" label="Password" type="password" placeholder="••••••••"
+                value={form.password} onChange={v => { setForm(p => ({...p, password: v})); setErrors(p => ({...p, password: ''})); }} error={errors.password} />
+              <AuthBtn loading={loading} label="Sign in" loadingLabel="Signing in…" />
+              <p style={{ textAlign: 'center', fontSize: 13, color: '#080808', opacity: 0.5, margin: 0 }}>
+                Don't have an account?{' '}
+                <Link to="/register" style={{ color: '#080808', fontWeight: 700, opacity: 1 }}>Sign up</Link>
+              </p>
+            </form>
           </div>
         </div>
       </div>
 
-      {/* ── Right panel ── */}
-      <div style={S.right}>
-        <div style={S.card}>
-          <div style={{ marginBottom: 4 }} className="auth-mobile-logo"><Logo /></div>
-          <h1 style={S.cardTitle}>Sign in</h1>
-          <p style={S.cardSub}>Welcome back. Enter your credentials below.</p>
-
-          {serverError && <ErrorBox msg={serverError} />}
-
-          <form onSubmit={handleSubmit} style={S.form}>
-            <Field id="email" label="Email" type="email" placeholder="your@email.com"
-              value={form.email} onChange={v => { setForm(p => ({...p, email: v})); setErrors(p => ({...p, email:''})); }} error={errors.email} />
-            <Field id="password" label="Password" type="password" placeholder="••••••••"
-              value={form.password} onChange={v => { setForm(p => ({...p, password: v})); setErrors(p => ({...p, password:''})); }} error={errors.password} />
-            <SubmitBtn loading={loading} label="Sign in" loadingLabel="Signing in…" />
-            <p style={S.switchText}>Don't have an account?{' '}<Link to="/register" style={S.link}>Sign up</Link></p>
-          </form>
-        </div>
-      </div>
-      <Styles />
+      <style>{`
+        @media (max-width: 768px) {
+          .auth-grid { grid-template-columns: 1fr !important; }
+          .auth-left-panel { display: none !important; }
+        }
+      `}</style>
     </div>
   );
 }
 
-// ── Register Page ─────────────────────────────────────────────────────────────
-export function RegisterPageInner() { return null; }
-
-// ── Shared styles ─────────────────────────────────────────────────────────────
-const S = {
-  page:      { minHeight:'100vh', background:'#0d1117', display:'flex', fontFamily:"'DM Sans',system-ui,sans-serif" },
-  left:      { flex:'0 0 52%', background:'#0d1117', borderRight:'1px solid #21262d', flexDirection:'column', justifyContent:'center', padding:'64px 56px' },
-  leftInner: { maxWidth: 400 },
-  right:     { flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'32px 16px', overflowY:'auto' },
-  card:      { width:'100%', maxWidth:400, background:'#161b22', border:'1px solid #30363d', borderRadius:16, padding:'36px 32px', boxShadow:'0 8px 40px rgba(0,0,0,0.5)' },
-  heroTitle: { fontSize:34, fontWeight:700, color:'#ffffff', margin:'0 0 12px', letterSpacing:'-1px', lineHeight:1.2 },
-  heroSub:   { color:'#8b949e', fontSize:14, lineHeight:1.7, margin:0 },
-  cardTitle: { fontSize:26, fontWeight:700, color:'#ffffff', margin:'0 0 4px', letterSpacing:'-0.5px' },
-  cardSub:   { color:'#8b949e', fontSize:13, margin:'0 0 24px' },
-  form:      { display:'flex', flexDirection:'column', gap:16 },
-  switchText:{ textAlign:'center', fontSize:13, color:'#8b949e', margin:0 },
-  link:      { color:'#58a6ff', fontWeight:600, textDecoration:'none' },
-};
-
-function Logo() {
-  return (
-    <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-      <div style={{ width:32, height:32, background:'#2563eb', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-        <svg width="17" height="17" fill="none" stroke="white" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-        </svg>
-      </div>
-      <span style={{ fontWeight:700, color:'#ffffff', fontSize:16, letterSpacing:'-0.3px' }}>Task <span style={{color:'#58a6ff'}}>Manager</span></span>
-    </div>
-  );
-}
-
-function StepItem({ n, text, active }) {
-  return (
-    <div style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px', borderRadius:10, background: active ? 'rgba(37,99,235,0.15)' : 'rgba(255,255,255,0.03)', border: active ? '1px solid rgba(37,99,235,0.3)' : '1px solid transparent' }}>
-      <div style={{ width:26, height:26, borderRadius:'50%', background: active ? '#2563eb' : 'rgba(255,255,255,0.08)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-        <span style={{ fontSize:12, fontWeight:700, color: active ? '#fff' : 'rgba(255,255,255,0.4)' }}>{n}</span>
-      </div>
-      <span style={{ fontSize:13, color: active ? '#c9d1d9' : '#6e7681', fontWeight: active ? 500 : 400 }}>{text}</span>
-    </div>
-  );
-}
-
-function Field({ id, label, type, placeholder, value, onChange, error }) {
+export function AuthField({ id, label, type, placeholder, value, onChange, error }) {
   const [focused, setFocused] = useState(false);
-  const border = error ? '#f85149' : focused ? '#388bfd' : '#30363d';
-  const shadow = focused ? `0 0 0 3px ${error ? 'rgba(248,81,73,0.1)' : 'rgba(56,139,253,0.1)'}` : 'none';
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-      <label htmlFor={id} style={{ fontSize:13, fontWeight:600, color:'#c9d1d9' }}>{label}</label>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <label htmlFor={id} style={{ fontSize: 13, fontWeight: 600, color: '#080808' }}>{label}</label>
       <input id={id} type={type} placeholder={placeholder} value={value}
         onChange={e => onChange(e.target.value)}
         onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-        style={{ background:'#0d1117', border:`1px solid ${border}`, boxShadow:shadow, borderRadius:9, padding:'10px 12px', fontSize:13, color:'#e6edf3', outline:'none', fontFamily:'inherit', width:'100%', boxSizing:'border-box', transition:'border-color .15s, box-shadow .15s', placeholderColor:'#484f58' }}
+        style={{ background: '#fff', border: `1.5px solid ${error ? '#dc2626' : focused ? '#080808' : 'rgba(8,8,8,0.15)'}`, borderRadius: 8, padding: '11px 14px', fontSize: 14, color: '#080808', outline: 'none', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box', transition: 'border-color .15s' }}
       />
-      {error && <span style={{ fontSize:12, color:'#f85149' }}>{error}</span>}
+      {error && <span style={{ fontSize: 12, color: '#dc2626' }}>{error}</span>}
     </div>
   );
 }
 
-function ErrorBox({ msg }) {
-  return <div style={{ background:'rgba(248,81,73,0.1)', border:'1px solid rgba(248,81,73,0.3)', color:'#f85149', borderRadius:8, padding:'10px 14px', fontSize:13, marginBottom:16 }}>{msg}</div>;
-}
-
-function SubmitBtn({ loading, label, loadingLabel }) {
+export function AuthBtn({ loading, label, loadingLabel }) {
   return (
     <button type="submit" disabled={loading}
-      style={{ width:'100%', background:'#2563eb', color:'#fff', border:'none', borderRadius:10, padding:'12px', fontSize:14, fontWeight:600, cursor:loading?'not-allowed':'pointer', opacity:loading?0.7:1, fontFamily:'inherit', marginTop:4, transition:'background .15s' }}
-      onMouseOver={e => !loading && (e.currentTarget.style.background='#1d4ed8')}
-      onMouseOut={e => (e.currentTarget.style.background='#2563eb')}>
+      style={{ width: '100%', background: '#080808', color: '#F5F3EE', border: 'none', borderRadius: 8, padding: '13px', fontSize: 15, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.6 : 1, fontFamily: 'inherit', marginTop: 4, transition: 'opacity .15s' }}>
       {loading ? loadingLabel : label}
     </button>
   );
 }
-
-function Styles() {
-  return (
-    <style>{`
-      .auth-left { display: none !important; }
-      .auth-mobile-logo { margin-bottom: 20px; }
-      @media (min-width: 1024px) {
-        .auth-left { display: flex !important; }
-        .auth-mobile-logo { display: none !important; }
-      }
-      input::placeholder { color: #484f58; }
-    `}</style>
-  );
-}
-
-export { Logo, StepItem, Field, ErrorBox, SubmitBtn, Styles, S };
