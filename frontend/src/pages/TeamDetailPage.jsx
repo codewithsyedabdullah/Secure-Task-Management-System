@@ -178,7 +178,7 @@ export default function TeamDetailPage() {
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                   <span style={{ fontSize:11, fontWeight:600, padding:'2px 8px', borderRadius:20, background: m.role==='creator'?'rgba(37,99,235,0.15)':'var(--hover)', color:'var(--text)', border:'1px solid var(--border)' }}>
-                    {m.role}
+                    {m.role.charAt(0).toUpperCase() + m.role.slice(1)}
                   </span>
                   {isCreator && m.id !== user.id && (
                     <button onClick={() => handleRemoveMember(m.id, m.username)}
