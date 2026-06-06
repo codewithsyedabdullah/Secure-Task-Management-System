@@ -4,7 +4,6 @@ import api from '../api';
 import { useAuth } from '../context/AuthContext';
 
 const s = {
-  card:    { background:'var(--card-bg)', border:'1px solid var(--border)', borderRadius:12, padding:24 },
   label:   { display:'block', fontSize:13, fontWeight:600, color:'var(--text)', marginBottom:6 },
   input:   { width:'100%', background:'var(--input-bg)', border:'1.5px solid var(--border)', borderRadius:8, padding:'9px 12px', fontSize:13, color:'var(--text)', outline:'none', fontFamily:'inherit', boxSizing:'border-box', transition:'border-color .15s' },
   btnPri:  { background:'var(--accent)', color:'var(--accent-fg)', border:'none', borderRadius:8, padding:'9px 16px', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit', whiteSpace:'nowrap', transition:'opacity .15s' },
@@ -98,6 +97,9 @@ export default function TeamDetailPage() {
   );
 
   const isCreator = team.my_role === 'creator';
+  const teamColor = team.color || '#6366f1';
+
+  const cardBase = { background:'var(--card-bg)', border:'1px solid var(--border)', borderRadius:12, padding:24 };
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:"'Inter',sans-serif", color:'var(--text)' }}>
@@ -108,15 +110,19 @@ export default function TeamDetailPage() {
             Dashboard
           </Link>
           <span style={{ color:'var(--text2)' }}>/</span>
-          <span style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>{team.name}</span>
+          {/* Color dot + team name in breadcrumb */}
+          <span style={{ display:'flex', alignItems:'center', gap:6, fontSize:13, fontWeight:600, color:'var(--text)' }}>
+            <span style={{ width:8, height:8, borderRadius:'50%', background:teamColor, display:'inline-block' }} />
+            {team.name}
+          </span>
         </div>
         <span style={{ fontFamily:"'Anton',sans-serif", fontSize:18, color:'var(--text)', letterSpacing:'0.5px' }}>TASK MANAGER</span>
       </header>
 
       <div style={{ maxWidth:680, margin:'0 auto', padding:'clamp(16px,4vw,32px) clamp(12px,4vw,24px)', boxSizing:'border-box' }}>
 
-        {/* Team header */}
-        <div style={{ ...s.card, marginBottom:16 }}>
+        {/* Team header card */}
+        <div style={{ ...cardBase, marginBottom:16, borderTop:`4px solid ${teamColor}`, position:'relative', overflow:'hidden' }}>
           {editing ? (
             <form onSubmit={handleEditTeam} style={{ display:'flex', flexDirection:'column', gap:14 }}>
               <div>
@@ -138,12 +144,20 @@ export default function TeamDetailPage() {
           ) : (
             <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
               <div style={{ flex:'1 1 180px', minWidth:0 }}>
-                <h1 style={{ fontSize:'clamp(18px,4vw,24px)', fontWeight:700, color:'var(--text)', margin:'0 0 6px', wordBreak:'break-word' }}>{team.name}</h1>
-                {team.description && <p style={{ color:'var(--text)', opacity:0.65, fontSize:14, margin:'0 0 8px' }}>{team.description}</p>}
-                <p style={{ fontSize:13, color:'var(--text)', opacity:0.45, margin:0 }}>Created by {team.creator_name}</p>
+                {/* Color avatar + name row */}
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:6 }}>
+                  <div style={{ width:36, height:36, borderRadius:10, background:teamColor, display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:16, fontWeight:700, flexShrink:0 }}>
+                    {team.name[0].toUpperCase()}
+                  </div>
+                  <div>
+                    <h1 style={{ fontSize:'clamp(18px,4vw,22px)', fontWeight:700, color:'var(--text)', margin:0, wordBreak:'break-word', lineHeight:1.2 }}>{team.name}</h1>
+                    <p style={{ fontSize:12, color:'var(--text)', opacity:0.45, margin:0 }}>Created by <strong style={{ opacity:0.8 }}>{team.creator_name}</strong></p>
+                  </div>
+                </div>
+                {team.description && <p style={{ color:'var(--text)', opacity:0.65, fontSize:14, margin:'8px 0 0' }}>{team.description}</p>}
               </div>
               <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0, flexWrap:'wrap' }}>
-                <span style={{ fontSize:12, fontWeight:600, padding:'3px 10px', borderRadius:20, background: isCreator ? 'rgba(37,99,235,0.15)' : 'var(--hover)', color:'var(--text)' }}>
+                <span style={{ fontSize:12, fontWeight:600, padding:'3px 10px', borderRadius:20, background: isCreator ? teamColor + '22' : 'var(--hover)', color: isCreator ? teamColor : 'var(--text)', border:`1px solid ${isCreator ? teamColor + '44' : 'var(--border)'}` }}>
                   {isCreator ? 'Creator' : 'Member'}
                 </span>
                 {isCreator && <>
@@ -158,13 +172,13 @@ export default function TeamDetailPage() {
         </div>
 
         {/* Members */}
-        <div style={{ ...s.card, marginBottom:16 }}>
+        <div style={{ ...cardBase, marginBottom:16 }}>
           <h2 style={{ fontSize:17, fontWeight:700, color:'var(--text)', margin:'0 0 16px' }}>Members ({team.members?.length || 0})</h2>
           <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
             {team.members?.map(m => (
               <div key={m.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', borderRadius:8, background:'var(--hover)', border:'1px solid var(--border)', flexWrap:'wrap', gap:8 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <div style={{ width:34, height:34, borderRadius:'50%', background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'var(--accent-fg)', flexShrink:0 }}>
+                  <div style={{ width:34, height:34, borderRadius:'50%', background: m.role === 'creator' ? teamColor : 'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'#fff', flexShrink:0 }}>
                     {m.username[0].toUpperCase()}
                   </div>
                   <div>
@@ -173,7 +187,7 @@ export default function TeamDetailPage() {
                   </div>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <span style={{ fontSize:12, fontWeight:600, padding:'2px 8px', borderRadius:20, background: m.role==='creator'?'rgba(37,99,235,0.15)':'var(--hover)', color:'var(--text)', border:'1px solid var(--border)' }}>
+                  <span style={{ fontSize:12, fontWeight:600, padding:'2px 8px', borderRadius:20, background: m.role==='creator' ? teamColor + '22' : 'var(--hover)', color: m.role==='creator' ? teamColor : 'var(--text)', border:`1px solid ${m.role==='creator' ? teamColor + '44' : 'var(--border)'}` }}>
                     {m.role.charAt(0).toUpperCase() + m.role.slice(1)}
                   </span>
                   {isCreator && m.id !== user.id && (
@@ -190,7 +204,7 @@ export default function TeamDetailPage() {
 
         {/* Add existing member */}
         {isCreator && (
-          <div style={{ ...s.card, marginBottom:16 }}>
+          <div style={{ ...cardBase, marginBottom:16 }}>
             <h2 style={{ fontSize:17, fontWeight:700, color:'var(--text)', margin:'0 0 4px' }}>Add Existing Member</h2>
             <p style={{ fontSize:13, color:'var(--text)', opacity:0.55, margin:'0 0 14px' }}>Enter the email address of a registered user.</p>
             <form onSubmit={handleAddMember} style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
@@ -208,7 +222,7 @@ export default function TeamDetailPage() {
 
         {/* Invite unregistered user */}
         {isCreator && (
-          <div style={{ ...s.card, border:'2px dashed var(--border)' }}>
+          <div style={{ ...cardBase, border:'2px dashed var(--border)' }}>
             <h2 style={{ fontSize:17, fontWeight:700, color:'var(--text)', margin:'0 0 4px' }}>✉️ Invite Unregistered User by Email</h2>
             <p style={{ fontSize:13, color:'var(--text)', opacity:0.55, margin:'0 0 16px' }}>
               Send an invitation to someone who hasn't signed up yet. (Stubbed — no SMTP configured.)

@@ -7,11 +7,18 @@ const { body, param, validationResult } = require('express-validator');
 // All team routes require authentication
 router.use(isAuthenticated);
 
+const TEAM_COLORS = [
+  '#6366f1', '#0ea5e9', '#10b981', '#f59e0b',
+  '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6',
+  '#f97316', '#84cc16',
+];
+const pickColor = () => TEAM_COLORS[Math.floor(Math.random() * TEAM_COLORS.length)];
+
 // GET /teams — get all teams the current user belongs to
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT t.id, t.name, t.description, t.created_by, t.created_at,
+      `SELECT t.id, t.name, t.description, t.color, t.created_by, t.created_at,
               u.username AS creator_name,
               tm.role AS my_role,
               COUNT(DISTINCT tm2.user_id) AS member_count
@@ -46,8 +53,8 @@ router.post(
     try {
       await client.query('BEGIN');
       const teamResult = await client.query(
-        'INSERT INTO teams (name, description, created_by) VALUES ($1, $2, $3) RETURNING *',
-        [name, description || null, req.user.id]
+        'INSERT INTO teams (name, description, created_by, color) VALUES ($1, $2, $3, $4) RETURNING *',
+        [name, description || null, req.user.id, pickColor()]
       );
       const team = teamResult.rows[0];
       // Creator is automatically a member with role 'creator'
@@ -231,7 +238,6 @@ router.post('/:id/invite', [param('id').isInt(), body('email').isEmail().normali
     // Check if user already exists — if so, suggest adding them directly
     const existingUser = await pool.query('SELECT id, username FROM users WHERE email = $1', [email]);
     if (existingUser.rows.length) {
-      // Check if already a member
       const alreadyMember = await pool.query(
         'SELECT id FROM team_members WHERE team_id = $1 AND user_id = $2',
         [req.params.id, existingUser.rows[0].id]
@@ -245,7 +251,6 @@ router.post('/:id/invite', [param('id').isInt(), body('email').isEmail().normali
       });
     }
 
-    // Stubbed: log the invite — no real email sent
     console.log(`[INVITE STUB] Team "${teamName}" (id=${req.params.id}) — invite sent to ${email}`);
 
     res.status(200).json({

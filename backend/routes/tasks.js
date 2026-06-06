@@ -6,10 +6,10 @@ const { body, param, validationResult } = require('express-validator');
 
 router.use(isAuthenticated);
 
-// Helper: fetch a task with assignees array attached
+// Helper: fetch a task with assignees array (including per-assignee status) attached
 const enrichTask = async (taskId, userId) => {
   const result = await pool.query(
-    `SELECT t.*, teams.name AS team_name,
+    `SELECT t.*, teams.name AS team_name, teams.color AS team_color,
             creator.username AS creator_name,
             tm.role AS my_team_role
      FROM tasks t
@@ -22,8 +22,11 @@ const enrichTask = async (taskId, userId) => {
   if (!result.rows[0]) return null;
   const task = result.rows[0];
   const aRes = await pool.query(
-    `SELECT u.id, u.username FROM task_assignees ta
-     JOIN users u ON u.id = ta.user_id WHERE ta.task_id = $1`,
+    `SELECT u.id, u.username, COALESCE(tas.status, 'todo') AS personal_status
+     FROM task_assignees ta
+     JOIN users u ON u.id = ta.user_id
+     LEFT JOIN task_assignee_statuses tas ON tas.task_id = ta.task_id AND tas.user_id = ta.user_id
+     WHERE ta.task_id = $1`,
     [taskId]
   );
   task.assignees = aRes.rows;
@@ -38,7 +41,7 @@ router.get('/', async (req, res) => {
     let queryStr = `
       SELECT DISTINCT t.id, t.title, t.description, t.status, t.priority, t.due_date,
              t.team_id, t.assigned_to, t.created_by, t.created_at, t.updated_at,
-             teams.name AS team_name,
+             teams.name AS team_name, teams.color AS team_color,
              creator.username AS creator_name,
              tm.role AS my_team_role
       FROM tasks t
@@ -61,13 +64,16 @@ router.get('/', async (req, res) => {
     let assigneesMap = {};
     if (taskIds.length > 0) {
       const aResult = await pool.query(
-        `SELECT ta.task_id, u.id, u.username FROM task_assignees ta
-         JOIN users u ON u.id = ta.user_id WHERE ta.task_id = ANY($1)`,
+        `SELECT ta.task_id, u.id, u.username, COALESCE(tas.status, 'todo') AS personal_status
+         FROM task_assignees ta
+         JOIN users u ON u.id = ta.user_id
+         LEFT JOIN task_assignee_statuses tas ON tas.task_id = ta.task_id AND tas.user_id = ta.user_id
+         WHERE ta.task_id = ANY($1)`,
         [taskIds]
       );
       aResult.rows.forEach(r => {
         if (!assigneesMap[r.task_id]) assigneesMap[r.task_id] = [];
-        assigneesMap[r.task_id].push({ id: r.id, username: r.username });
+        assigneesMap[r.task_id].push({ id: r.id, username: r.username, personal_status: r.personal_status });
       });
     }
     const rows = result.rows.map(t => ({
@@ -82,7 +88,7 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /tasks/reminders — tasks due today/overdue where user is assignee or creator
+// GET /tasks/reminders
 router.get('/reminders', async (req, res) => {
   try {
     const result = await pool.query(
@@ -159,7 +165,7 @@ router.get('/:id', [param('id').isInt()], async (req, res) => {
   }
 });
 
-// PUT /tasks/:id/status — assignees or creator
+// PUT /tasks/:id/status — each assignee updates only their own personal status
 router.put('/:id/status', [
   param('id').isInt(),
   body('status').isIn(['todo', 'in_progress', 'done', 'need_help', 'need_more_time']).withMessage('Invalid status.'),
@@ -175,14 +181,53 @@ router.put('/:id/status', [
     );
     if (!taskResult.rows.length) return res.status(404).json({ error: 'Task not found.' });
     const task = taskResult.rows[0];
-    const isAssignee = await pool.query(
+
+    const isAssigneeRes = await pool.query(
       'SELECT 1 FROM task_assignees WHERE task_id=$1 AND user_id=$2',
       [req.params.id, req.user.id]
     );
-    if (!isAssignee.rows.length && task.role !== 'creator') {
+    const isAssignee = isAssigneeRes.rows.length > 0;
+
+    if (!isAssignee && task.role !== 'creator') {
       return res.status(403).json({ error: 'Only assignees or the team creator can update the status.' });
     }
-    await pool.query('UPDATE tasks SET status=$1, updated_at=NOW() WHERE id=$2', [req.body.status, req.params.id]);
+
+    // Save personal status for this assignee
+    if (isAssignee) {
+      await pool.query(
+        `INSERT INTO task_assignee_statuses (task_id, user_id, status, updated_at)
+         VALUES ($1, $2, $3, NOW())
+         ON CONFLICT (task_id, user_id) DO UPDATE SET status = $3, updated_at = NOW()`,
+        [req.params.id, req.user.id, req.body.status]
+      );
+    }
+
+    // Compute overall task status from all assignees' personal statuses
+    const allAssigneesRes = await pool.query(
+      'SELECT user_id FROM task_assignees WHERE task_id=$1',
+      [req.params.id]
+    );
+    const allAssignees = allAssigneesRes.rows;
+
+    let overallStatus = req.body.status;
+    if (allAssignees.length > 1) {
+      const statusesRes = await pool.query(
+        'SELECT status FROM task_assignee_statuses WHERE task_id=$1',
+        [req.params.id]
+      );
+      const savedStatuses = statusesRes.rows.map(r => r.status);
+      const allDone = savedStatuses.length === allAssignees.length && savedStatuses.every(s => s === 'done');
+      const anyNeedHelp = savedStatuses.includes('need_help');
+      const anyNeedMoreTime = savedStatuses.includes('need_more_time');
+      const anyInProgress = savedStatuses.includes('in_progress');
+      if (allDone) overallStatus = 'done';
+      else if (anyNeedHelp) overallStatus = 'need_help';
+      else if (anyNeedMoreTime) overallStatus = 'need_more_time';
+      else if (anyInProgress) overallStatus = 'in_progress';
+      else overallStatus = 'todo';
+    }
+
+    await pool.query('UPDATE tasks SET status=$1, updated_at=NOW() WHERE id=$2', [overallStatus, req.params.id]);
     const enriched = await enrichTask(req.params.id, req.user.id);
     res.json(enriched);
   } catch (err) {
@@ -231,6 +276,7 @@ router.put('/:id', [
 
     if (assignees !== undefined) {
       await pool.query('DELETE FROM task_assignees WHERE task_id=$1', [req.params.id]);
+      await pool.query('DELETE FROM task_assignee_statuses WHERE task_id=$1', [req.params.id]);
       for (const uid of assignees) {
         const check = await pool.query('SELECT id FROM team_members WHERE team_id=$1 AND user_id=$2', [task.team_id, uid]);
         if (check.rows.length) {

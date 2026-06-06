@@ -14,7 +14,7 @@ export default function DashboardPage() {
   const [myTasks, setMyTasks] = useState([]);
   const [allTasks, setAllTasks] = useState([]);
   const [allMembers, setAllMembers] = useState([]);
-  const [teamMembersMap, setTeamMembersMap] = useState({}); // teamId -> members[]
+  const [teamMembersMap, setTeamMembersMap] = useState({});
   const [loading, setLoading] = useState(true);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showTeamModal, setShowTeamModal] = useState(false);
@@ -146,7 +146,7 @@ export default function DashboardPage() {
 
         {/* Nav */}
         <nav style={{ flex: 1, padding: '16px 12px', overflowY: 'auto' }}>
-          <p style={{ fontSize: 10, fontWeight: 700, color: '#080808', opacity: 0.35, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '0 8px', marginBottom: 8 }}>Main</p>
+          <p style={{ fontSize: 11, fontWeight: 800, color: '#080808', opacity: 0.7, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '0 8px', marginBottom: 8 }}>Main</p>
           {NAV.map(item => (
             <button key={item.id} onClick={() => scrollTo(item.ref, item.id)}
               style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: activeSection === item.id ? 600 : 400, background: activeSection === item.id ? 'rgba(8,8,8,0.07)' : 'transparent', color: '#080808', opacity: activeSection === item.id ? 1 : 0.55, textAlign: 'left', transition: 'all 0.15s', marginBottom: 2 }}>
@@ -157,12 +157,12 @@ export default function DashboardPage() {
           {/* Teams list */}
           {teams.length > 0 && (
             <>
-              <p style={{ fontSize: 10, fontWeight: 700, color: '#080808', opacity: 0.35, letterSpacing: '0.1em', textTransform: 'uppercase', padding: '0 8px', margin: '20px 0 8px' }}>Your Teams</p>
+              <p style={{ fontSize: 11, fontWeight: 800, color: '#080808', opacity: 0.7, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '0 8px', margin: '20px 0 8px' }}>Your Teams</p>
               {teams.map(team => (
                 <div key={team.id} style={{ display: 'flex', alignItems: 'center', borderRadius: 8, marginBottom: 2, background: filterTeam === team.id.toString() ? 'rgba(8,8,8,0.07)' : 'transparent' }}>
                   <button onClick={() => { setFilterTeam(team.id.toString()); scrollTo(tasksRef, 'tasks'); }}
                     style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, color: '#080808', opacity: filterTeam === team.id.toString() ? 1 : 0.55, textAlign: 'left' }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#080808', opacity: 0.5, flexShrink: 0 }} />
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: team.color || '#6366f1', flexShrink: 0 }} />
                     <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{team.name}</span>
                     <span style={{ fontSize: 11, opacity: 0.4 }}>{team.member_count}</span>
                   </button>
@@ -206,7 +206,6 @@ export default function DashboardPage() {
 
         {/* Topbar */}
         <header style={{ background: 'var(--topbar)', borderBottom: '1px solid var(--border)', padding: '12px 28px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-          {/* Mobile hamburger */}
           <button onClick={() => setSidebarOpen(!sidebarOpen)}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#080808', display: 'none' }} className="dash-hamburger">
             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -256,7 +255,7 @@ export default function DashboardPage() {
 
           {/* Overview */}
           <section ref={overviewRef} style={{ marginBottom: 48 }}>
-            <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.35, marginBottom: 16 }}>Overview</p>
+            <p style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.01em', color: '#080808', marginBottom: 16 }}>Overview</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }} className="stats-grid">
               {stats.map(s => (
                 <div key={s.label} style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 20px 16px' }}>
@@ -272,7 +271,7 @@ export default function DashboardPage() {
           {/* Teams */}
           <section ref={teamsRef} style={{ marginBottom: 48 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.35, margin: 0 }}>Teams</p>
+              <p style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.01em', color: '#080808', margin: 0 }}>Teams</p>
               <button onClick={() => setShowTeamModal(true)}
                 style={{ fontSize: 12, fontWeight: 600, color: '#080808', background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5, fontFamily: 'inherit' }}
                 onMouseOver={e => e.currentTarget.style.opacity = '1'}
@@ -286,24 +285,30 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }} className="teams-grid">
-                {teams.map(team => (
-                  <Link key={team.id} to={`/teams/${team.id}`}
-                    style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px', textDecoration: 'none', color: 'var(--text)', display: 'block', transition: 'border-color .15s' }}
-                    onMouseOver={e => e.currentTarget.style.borderColor = 'var(--text)'}
-                    onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-fg)', fontSize: 13, fontWeight: 700 }}>
-                        {team.name[0].toUpperCase()}
+                {teams.map(team => {
+                  const tc = team.color || '#6366f1';
+                  return (
+                    <Link key={team.id} to={`/teams/${team.id}`}
+                      style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px', textDecoration: 'none', color: 'var(--text)', display: 'block', transition: 'border-color .15s', overflow: 'hidden', position: 'relative' }}
+                      onMouseOver={e => e.currentTarget.style.borderColor = tc}
+                      onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}>
+                      {/* Color top bar */}
+                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: tc }} />
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, marginTop: 8 }}>
+                        <div style={{ width: 32, height: 32, borderRadius: 8, background: tc, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, fontWeight: 700 }}>
+                          {team.name[0].toUpperCase()}
+                        </div>
+                        <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 100, background: team.my_role === 'creator' ? 'rgba(8,8,8,0.07)' : 'rgba(8,8,8,0.04)', color: '#080808', opacity: team.my_role === 'creator' ? 1 : 0.5 }}>
+                          {team.my_role === 'creator' ? 'Creator' : 'Member'}
+                        </span>
                       </div>
-                      <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 100, background: team.my_role === 'creator' ? 'rgba(8,8,8,0.07)' : 'rgba(8,8,8,0.04)', color: '#080808', opacity: team.my_role === 'creator' ? 1 : 0.5 }}>
-                        {team.my_role === 'creator' ? 'Creator' : 'Member'}
-                      </span>
-                    </div>
-                    <p style={{ fontSize: 14, fontWeight: 600, margin: '0 0 4px' }}>{team.name}</p>
-                    {team.description && <p style={{ fontSize: 12, opacity: 0.4, margin: '0 0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{team.description}</p>}
-                    <p style={{ fontSize: 12, opacity: 0.35, margin: 0 }}>{team.member_count || 0} member{team.member_count !== 1 ? 's' : ''}</p>
-                  </Link>
-                ))}
+                      <p style={{ fontSize: 14, fontWeight: 700, margin: '0 0 2px' }}>{team.name}</p>
+                      <p style={{ fontSize: 11, fontWeight: 500, opacity: 0.45, margin: '0 0 6px' }}>by {team.creator_name}</p>
+                      {team.description && <p style={{ fontSize: 12, opacity: 0.4, margin: '0 0 8px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{team.description}</p>}
+                      <p style={{ fontSize: 12, opacity: 0.35, margin: 0 }}>{team.member_count || 0} member{team.member_count !== 1 ? 's' : ''}</p>
+                    </Link>
+                  );
+                })}
               </div>
             )}
           </section>
@@ -311,8 +316,8 @@ export default function DashboardPage() {
           {/* Tasks */}
           <section ref={tasksRef}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.35, margin: 0 }}>
-                Tasks <span style={{ fontFamily: 'inherit', fontWeight: 400, opacity: 0.5 }}>({tasks.length})</span>
+              <p style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.01em', color: '#080808', margin: 0 }}>
+                Tasks <span style={{ fontFamily: 'inherit', fontWeight: 400, fontSize: 16, opacity: 0.4 }}>({tasks.length})</span>
               </p>
             </div>
 
@@ -320,14 +325,12 @@ export default function DashboardPage() {
             <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 18px', marginBottom: 16, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
               <p style={{ fontSize: 12, fontWeight: 600, opacity: 0.4, margin: 0, flexShrink: 0 }}>Filter:</p>
 
-              {/* Teams */}
               <select value={filterTeam} onChange={e => { setFilterTeam(e.target.value); setFilterAssignee(''); }}
                 style={{ fontSize: 13, border: '1.5px solid rgba(8,8,8,0.12)', borderRadius: 8, padding: '7px 12px', background: 'var(--bg)', color: 'var(--text)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
                 <option value="">All Teams</option>
-                {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                {teams.map(t => <option key={t.id} value={t.id}>{t.name} (by {t.creator_name})</option>)}
               </select>
 
-              {/* Assignees — scoped to selected team if one is chosen */}
               <select value={filterAssignee} onChange={e => setFilterAssignee(e.target.value)}
                 style={{ fontSize: 13, border: '1.5px solid rgba(8,8,8,0.12)', borderRadius: 8, padding: '7px 12px', background: 'var(--bg)', color: 'var(--text)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
                 <option value="">All Assignees</option>
@@ -336,7 +339,6 @@ export default function DashboardPage() {
                 ))}
               </select>
 
-              {/* Status — at the end */}
               <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
                 style={{ fontSize: 13, border: '1.5px solid rgba(8,8,8,0.12)', borderRadius: 8, padding: '7px 12px', background: 'var(--bg)', color: 'var(--text)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
                 <option value="">All Status</option>

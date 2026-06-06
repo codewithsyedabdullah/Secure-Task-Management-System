@@ -24,6 +24,15 @@ const STATUS_OPTS = [
   { value:'todo',           label:'To Do' },
 ];
 
+const PS_COLOR = {
+  todo: '#080808', in_progress: '#1d4ed8', done: '#15803d',
+  need_help: '#dc2626', need_more_time: '#c2410c',
+};
+const PS_LABEL = {
+  todo: 'To Do', in_progress: 'In Progress', done: '✓ Done',
+  need_help: 'Need Help', need_more_time: 'More Time',
+};
+
 export default function TaskCard({ task, onEdit, onDelete, onStatusUpdate }) {
   const { user } = useAuth();
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -31,6 +40,7 @@ export default function TaskCard({ task, onEdit, onDelete, onStatusUpdate }) {
   const isAssignee = user && (task.assignees || []).some(a => a.id == user.id);
   const canUpdateStatus = isAssignee;
   const isTeamCreator = task.my_team_role === 'creator';
+  const multiAssignee = (task.assignees || []).length > 1;
 
   const parseLocalDate = d => { const [y,m,dd]=d.split('T')[0].split('-').map(Number); return new Date(y,m-1,dd); };
   const todayLocal = new Date(); todayLocal.setHours(0,0,0,0);
@@ -47,13 +57,19 @@ export default function TaskCard({ task, onEdit, onDelete, onStatusUpdate }) {
   const sBadge = STATUS_STYLE[task.status] || STATUS_STYLE.todo;
   const pBadge = PRIORITY_STYLE[task.priority] || PRIORITY_STYLE.medium;
 
+  // Team color for badge
+  const tc = task.team_color || '#6366f1';
+
   return (
-    <div style={{ background: '#fff', border: '1px solid rgba(8,8,8,0.08)', borderRadius: 12, padding: '18px', fontFamily: "'Inter', sans-serif", transition: 'border-color .15s' }}
+    <div style={{ background: '#fff', border: '1px solid rgba(8,8,8,0.08)', borderRadius: 12, padding: '18px', fontFamily: "'Inter', sans-serif", transition: 'border-color .15s', overflow: 'hidden', position: 'relative' }}
       onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(8,8,8,0.2)'}
       onMouseOut={e => e.currentTarget.style.borderColor = 'rgba(8,8,8,0.08)'}>
 
+      {/* Color top bar matching team color */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: tc }} />
+
       {/* Title row */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: 8, marginTop: 6 }}>
         <h3 style={{ fontSize: 14, fontWeight: 600, color: '#080808', margin: 0, lineHeight: 1.35, flex: 1 }}>{task.title}</h3>
         {isTeamCreator && (
           <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
@@ -85,8 +101,34 @@ export default function TaskCard({ task, onEdit, onDelete, onStatusUpdate }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
         <span style={{ ...sBadge, fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 100 }}>{STATUS_LABELS[task.status] || task.status}</span>
         <span style={{ ...pBadge, fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 100 }}>{task.priority?.charAt(0).toUpperCase() + task.priority?.slice(1)}</span>
-        {task.team_name && <span style={{ background: 'rgba(124,58,237,0.08)', color: '#7c3aed', fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 100 }}>{task.team_name}</span>}
+        {task.team_name && (
+          <span style={{ background: tc + '18', color: tc, fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 100 }}>
+            {task.team_name}
+          </span>
+        )}
       </div>
+
+      {/* Multi-assignee progress panel */}
+      {multiAssignee && (
+        <div style={{ background: 'rgba(8,8,8,0.03)', border: '1px solid rgba(8,8,8,0.07)', borderRadius: 8, padding: '8px 10px', marginBottom: 10 }}>
+          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#080808', opacity: 0.35, margin: '0 0 6px' }}>Assignee Progress</p>
+          {task.assignees.map(a => {
+            const ps = a.personal_status || 'todo';
+            const psColor = PS_COLOR[ps] || '#080808';
+            const isSelf = user && a.id == user.id;
+            return (
+              <div key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+                <span style={{ fontSize: 11, color: '#080808', opacity: isSelf ? 1 : 0.55, fontWeight: isSelf ? 600 : 400 }}>
+                  {isSelf ? '👤 You' : a.username}
+                </span>
+                <span style={{ fontSize: 10, fontWeight: 600, color: psColor, background: psColor + '18', padding: '2px 8px', borderRadius: 100 }}>
+                  {PS_LABEL[ps] || ps}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Meta row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: 12, marginBottom: canUpdateStatus ? 14 : 0 }}>
@@ -94,9 +136,10 @@ export default function TaskCard({ task, onEdit, onDelete, onStatusUpdate }) {
           {task.assignees?.length > 0 ? (
             <>
               <div style={{ display: 'flex' }}>
-                {task.assignees.slice(0,3).map(a => (
-                  <div key={a.id} title={a.username} style={{ width: 20, height: 20, borderRadius: '50%', background: '#080808', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F5F3EE', fontSize: 9, fontWeight: 700, marginLeft: -4 }}
-                    className="first:ml-0">{a.username[0].toUpperCase()}</div>
+                {task.assignees.slice(0,3).map((a, i) => (
+                  <div key={a.id} title={a.username} style={{ width: 20, height: 20, borderRadius: '50%', background: '#080808', border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F5F3EE', fontSize: 9, fontWeight: 700, marginLeft: i === 0 ? 0 : -4 }}>
+                    {a.username[0].toUpperCase()}
+                  </div>
                 ))}
               </div>
               <span style={{ color: '#080808', opacity: 0.5 }}>{task.assignees.length === 1 ? task.assignees[0].username : `${task.assignees.length} assignees`}</span>
@@ -110,19 +153,26 @@ export default function TaskCard({ task, onEdit, onDelete, onStatusUpdate }) {
         )}
       </div>
 
-      {/* Status buttons */}
+      {/* Status buttons — per-assignee */}
       {canUpdateStatus && (
         <div style={{ borderTop: '1px solid rgba(8,8,8,0.07)', paddingTop: 12 }}>
-          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#080808', opacity: 0.35, margin: '0 0 8px' }}>Update status</p>
+          <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#080808', opacity: 0.35, margin: '0 0 8px' }}>
+            {multiAssignee ? 'Your status' : 'Update status'}
+          </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {STATUS_OPTS.map(opt => (
-              <button key={opt.value}
-                disabled={updatingStatus || task.status === opt.value}
-                onClick={() => handleStatusChange(opt.value)}
-                style={{ fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 100, border: `1.5px solid ${task.status === opt.value ? 'rgba(8,8,8,0.3)' : 'rgba(8,8,8,0.12)'}`, background: task.status === opt.value ? 'rgba(8,8,8,0.07)' : 'transparent', color: '#080808', cursor: task.status === opt.value ? 'default' : 'pointer', opacity: task.status === opt.value || updatingStatus ? 0.5 : 1, fontFamily: 'inherit', transition: 'all .15s' }}>
-                {opt.label}
-              </button>
-            ))}
+            {STATUS_OPTS.map(opt => {
+              const myStatus = multiAssignee
+                ? (task.assignees.find(a => a.id == user?.id)?.personal_status || 'todo')
+                : task.status;
+              return (
+                <button key={opt.value}
+                  disabled={updatingStatus || myStatus === opt.value}
+                  onClick={() => handleStatusChange(opt.value)}
+                  style={{ fontSize: 11, fontWeight: 600, padding: '4px 10px', borderRadius: 100, border: `1.5px solid ${myStatus === opt.value ? 'rgba(8,8,8,0.3)' : 'rgba(8,8,8,0.12)'}`, background: myStatus === opt.value ? 'rgba(8,8,8,0.07)' : 'transparent', color: '#080808', cursor: myStatus === opt.value ? 'default' : 'pointer', opacity: myStatus === opt.value || updatingStatus ? 0.5 : 1, fontFamily: 'inherit', transition: 'all .15s' }}>
+                  {opt.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
