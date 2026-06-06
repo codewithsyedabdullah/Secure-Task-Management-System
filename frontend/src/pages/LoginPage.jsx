@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import ThemeToggle from '../components/ThemeToggle';
 import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
@@ -32,7 +31,6 @@ export default function LoginPage() {
       {/* Header */}
       <header style={{ padding: '20px 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Link to="/" style={{ fontFamily: "'Anton', sans-serif", fontSize: 22, color: 'var(--text)', textDecoration: 'none' }}>TASK MANAGER</Link>
-          <div style={{marginLeft:'auto'}}><ThemeToggle /></div>
         <p style={{ fontSize: 14, color: 'var(--text)', opacity: 0.5, margin: 0 }}>
           No account?{' '}
           <Link to="/register" style={{ color: 'var(--text)', fontWeight: 600, opacity: 1 }}>Sign up free</Link>

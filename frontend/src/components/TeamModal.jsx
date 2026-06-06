@@ -12,6 +12,7 @@ export default function TeamModal({ onClose, onSave }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [createdTeam, setCreatedTeam] = useState(null);
+  const [addedCount, setAddedCount] = useState(0);
 
   const s = {
     overlay:  { position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', backdropFilter:'blur(4px)', zIndex:50, display:'flex', alignItems:'center', justifyContent:'center', padding:16 },
@@ -53,6 +54,7 @@ export default function TeamModal({ onClose, onSave }) {
       await api.post('/teams/' + createdTeam.id + '/members', { email: memberEmail });
       setMemberMsg({ type:'ok', text:'Member added successfully.' });
       setMemberEmail('');
+      setAddedCount(c => c + 1);
     } catch (err) {
       setMemberMsg({ type:'err', text: err.response?.data?.error || 'Failed to add member.' });
     } finally { setMemberLoading(false); }
@@ -152,8 +154,19 @@ export default function TeamModal({ onClose, onSave }) {
                 </form>
               </div>
 
-              <div style={{ marginTop:24 }}>
-                <button onClick={onClose} style={{ ...s.btnPri, width:'100%', padding:'11px' }}>Done</button>
+              <div style={{ marginTop:24, display:'flex', flexDirection:'column', gap:8 }}>
+                {addedCount > 0 ? (
+                  <button onClick={onClose} style={{ ...s.btnPri, width:'100%', padding:'11px' }}>
+                    Done
+                  </button>
+                ) : (
+                  <>
+                    <button onClick={onClose} style={{ ...s.btnSec, width:'100%', padding:'11px', textAlign:'center' }}>
+                      Continue without adding members
+                    </button>
+                    <p style={{ fontSize:12, color:'var(--text2)', textAlign:'center', margin:0 }}>You can add members later from the team page.</p>
+                  </>
+                )}
               </div>
             </>
           )}

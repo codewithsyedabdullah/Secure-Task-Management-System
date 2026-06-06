@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import ThemeToggle from '../components/ThemeToggle';
 import { useAuth } from '../context/AuthContext';
 import { AuthField, AuthBtn } from './LoginPage';
 
@@ -39,7 +38,6 @@ export default function RegisterPage() {
       {/* Header */}
       <header style={{ padding: '20px 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Link to="/" style={{ fontFamily: "'Anton', sans-serif", fontSize: 22, color: 'var(--text)', textDecoration: 'none' }}>TASK MANAGER</Link>
-          <div style={{marginLeft:'auto'}}><ThemeToggle /></div>
         <p style={{ fontSize: 14, color: 'var(--text)', opacity: 0.5, margin: 0 }}>
           Have an account?{' '}
           <Link to="/login" style={{ color: 'var(--text)', fontWeight: 600, opacity: 1 }}>Sign in</Link>

@@ -6,7 +6,6 @@ import TaskModal from '../components/TaskModal';
 import TeamModal from '../components/TeamModal';
 import ReminderBanner from '../components/ReminderBanner';
 import { useAuth } from '../context/AuthContext';
-import ThemeToggle from '../components/ThemeToggle';
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
@@ -245,7 +244,6 @@ export default function DashboardPage() {
               <span className="dash-btn-text">New Task</span>
             </button>
           )}
-          <ThemeToggle />
         </header>
 
         {/* Body */}

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
-import ThemeToggle from '../components/ThemeToggle';
 
 const s = {
   card:    { background:'var(--card-bg)', border:'1px solid var(--border)', borderRadius:12, padding:24 },
@@ -102,7 +101,7 @@ export default function TeamDetailPage() {
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:"'Inter',sans-serif", color:'var(--text)' }}>
-      <header style={{ background:'var(--topbar)', borderBottom:'1px solid var(--border)', padding:'12px 24px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+      <header style={{ background:'var(--topbar)', borderBottom:'1px solid var(--border)', padding:'12px 24px', display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:8 }}>
         <div style={{ display:'flex', alignItems:'center', gap:16 }}>
           <Link to="/dashboard" style={{ color:'var(--text)', textDecoration:'none', fontSize:13, display:'flex', alignItems:'center', gap:6, opacity:0.6 }}>
             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>
@@ -111,13 +110,10 @@ export default function TeamDetailPage() {
           <span style={{ color:'var(--text2)' }}>/</span>
           <span style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>{team.name}</span>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <span style={{ fontFamily:"'Anton',sans-serif", fontSize:18, color:'var(--text)', letterSpacing:'0.5px' }}>TASK MANAGER</span>
-          <ThemeToggle />
-        </div>
+        <span style={{ fontFamily:"'Anton',sans-serif", fontSize:18, color:'var(--text)', letterSpacing:'0.5px' }}>TASK MANAGER</span>
       </header>
 
-      <div style={{ maxWidth:700, margin:'0 auto', padding:'32px 16px' }}>
+      <div style={{ maxWidth:680, margin:'0 auto', padding:'clamp(16px,4vw,32px) clamp(12px,4vw,24px)', boxSizing:'border-box' }}>
 
         {/* Team header */}
         <div style={{ ...s.card, marginBottom:16 }}>
@@ -134,25 +130,25 @@ export default function TeamDetailPage() {
                   onFocus={e=>e.target.style.borderColor='var(--text)'} onBlur={e=>e.target.style.borderColor='var(--border)'} />
               </div>
               {editError && <p style={{ color:'#ef4444', fontSize:13 }}>{editError}</p>}
-              <div style={{ display:'flex', gap:10 }}>
+              <div style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
                 <button type="button" onClick={()=>setEditing(false)} style={s.btnSec}>Cancel</button>
                 <button type="submit" disabled={editLoading} style={s.btnPri}>{editLoading?'Saving…':'Save Changes'}</button>
               </div>
             </form>
           ) : (
             <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
-              <div>
-                <h1 style={{ fontSize:22, fontWeight:700, color:'var(--text)', margin:'0 0 4px' }}>{team.name}</h1>
-                {team.description && <p style={{ color:'var(--text2)', fontSize:13, margin:'0 0 8px' }}>{team.description}</p>}
-                <p style={{ fontSize:12, color:'var(--text2)', margin:0 }}>Created by {team.creator_name}</p>
+              <div style={{ flex:'1 1 180px', minWidth:0 }}>
+                <h1 style={{ fontSize:'clamp(18px,4vw,24px)', fontWeight:700, color:'var(--text)', margin:'0 0 6px', wordBreak:'break-word' }}>{team.name}</h1>
+                {team.description && <p style={{ color:'var(--text)', opacity:0.65, fontSize:14, margin:'0 0 8px' }}>{team.description}</p>}
+                <p style={{ fontSize:13, color:'var(--text)', opacity:0.45, margin:0 }}>Created by {team.creator_name}</p>
               </div>
-              <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0, flexWrap:'wrap' }}>
                 <span style={{ fontSize:12, fontWeight:600, padding:'3px 10px', borderRadius:20, background: isCreator ? 'rgba(37,99,235,0.15)' : 'var(--hover)', color:'var(--text)' }}>
                   {isCreator ? 'Creator' : 'Member'}
                 </span>
                 {isCreator && <>
-                  <button onClick={startEdit} style={{...s.btnSec, padding:'5px 12px', fontSize:12}}>✏️ Edit</button>
-                  <button onClick={handleDeleteTeam} disabled={deleteLoading} style={{...s.btnDng, padding:'5px 12px', fontSize:12}}>
+                  <button onClick={startEdit} style={{...s.btnSec, padding:'6px 14px', fontSize:13}}>✏️ Edit</button>
+                  <button onClick={handleDeleteTeam} disabled={deleteLoading} style={{...s.btnDng, padding:'6px 14px', fontSize:13}}>
                     {deleteLoading ? '…' : 'Delete'}
                   </button>
                 </>}
@@ -163,26 +159,26 @@ export default function TeamDetailPage() {
 
         {/* Members */}
         <div style={{ ...s.card, marginBottom:16 }}>
-          <h2 style={{ fontSize:15, fontWeight:700, color:'var(--text)', margin:'0 0 16px' }}>Members ({team.members?.length || 0})</h2>
-          <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
+          <h2 style={{ fontSize:17, fontWeight:700, color:'var(--text)', margin:'0 0 16px' }}>Members ({team.members?.length || 0})</h2>
+          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
             {team.members?.map(m => (
-              <div key={m.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', borderRadius:8, background:'var(--hover)', border:'1px solid var(--border)', marginBottom:4 }}>
+              <div key={m.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', borderRadius:8, background:'var(--hover)', border:'1px solid var(--border)', flexWrap:'wrap', gap:8 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <div style={{ width:32, height:32, borderRadius:'50%', background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, color:'var(--accent-fg)', flexShrink:0 }}>
+                  <div style={{ width:34, height:34, borderRadius:'50%', background:'var(--accent)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, fontWeight:700, color:'var(--accent-fg)', flexShrink:0 }}>
                     {m.username[0].toUpperCase()}
                   </div>
                   <div>
                     <p style={{ fontSize:14, fontWeight:600, color:'var(--text)', margin:0 }}>{m.username}</p>
-                    <p style={{ fontSize:12, color:'var(--text2)', margin:0 }}>{m.email}</p>
+                    <p style={{ fontSize:13, color:'var(--text)', opacity:0.5, margin:0 }}>{m.email}</p>
                   </div>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <span style={{ fontSize:11, fontWeight:600, padding:'2px 8px', borderRadius:20, background: m.role==='creator'?'rgba(37,99,235,0.15)':'var(--hover)', color:'var(--text)', border:'1px solid var(--border)' }}>
+                  <span style={{ fontSize:12, fontWeight:600, padding:'2px 8px', borderRadius:20, background: m.role==='creator'?'rgba(37,99,235,0.15)':'var(--hover)', color:'var(--text)', border:'1px solid var(--border)' }}>
                     {m.role.charAt(0).toUpperCase() + m.role.slice(1)}
                   </span>
                   {isCreator && m.id !== user.id && (
                     <button onClick={() => handleRemoveMember(m.id, m.username)}
-                      style={{ background:'none', border:'none', cursor:'pointer', color:'#ef4444', fontSize:12, fontWeight:600, padding:'2px 6px' }}>
+                      style={{ background:'none', border:'none', cursor:'pointer', color:'#ef4444', fontSize:13, fontWeight:600, padding:'2px 6px' }}>
                       Remove
                     </button>
                   )}
@@ -195,11 +191,11 @@ export default function TeamDetailPage() {
         {/* Add existing member */}
         {isCreator && (
           <div style={{ ...s.card, marginBottom:16 }}>
-            <h2 style={{ fontSize:15, fontWeight:700, color:'var(--text)', margin:'0 0 4px' }}>Add Existing Member</h2>
-            <p style={{ fontSize:12, color:'var(--text2)', margin:'0 0 14px' }}>Enter the email address of a registered user.</p>
-            <form onSubmit={handleAddMember} style={{ display:'flex', gap:10 }}>
+            <h2 style={{ fontSize:17, fontWeight:700, color:'var(--text)', margin:'0 0 4px' }}>Add Existing Member</h2>
+            <p style={{ fontSize:13, color:'var(--text)', opacity:0.55, margin:'0 0 14px' }}>Enter the email address of a registered user.</p>
+            <form onSubmit={handleAddMember} style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
               <input value={memberEmail} onChange={e=>setMemberEmail(e.target.value)} type="email"
-                placeholder="member@email.com" required style={{...s.input, flex:1}}
+                placeholder="member@email.com" required style={{...s.input, flex:'1 1 160px', minWidth:0}}
                 onFocus={e=>e.target.style.borderColor='var(--text)'} onBlur={e=>e.target.style.borderColor='var(--border)'} />
               <button type="submit" disabled={addLoading} style={{...s.btnPri, opacity:addLoading?0.6:1}}>
                 {addLoading ? '…' : 'Add Member'}
@@ -213,15 +209,15 @@ export default function TeamDetailPage() {
         {/* Invite unregistered user */}
         {isCreator && (
           <div style={{ ...s.card, border:'2px dashed var(--border)' }}>
-            <h2 style={{ fontSize:15, fontWeight:700, color:'var(--text)', margin:'0 0 4px' }}>✉️ Invite Unregistered User by Email</h2>
-            <p style={{ fontSize:12, color:'var(--text2)', margin:'0 0 16px' }}>
-              Send an invitation to someone who hasn't signed up yet. They'll receive an email with a link to register. (Stubbed — no SMTP configured.)
+            <h2 style={{ fontSize:17, fontWeight:700, color:'var(--text)', margin:'0 0 4px' }}>✉️ Invite Unregistered User by Email</h2>
+            <p style={{ fontSize:13, color:'var(--text)', opacity:0.55, margin:'0 0 16px' }}>
+              Send an invitation to someone who hasn't signed up yet. (Stubbed — no SMTP configured.)
             </p>
             <form onSubmit={handleInvite} style={{ display:'flex', gap:10, flexWrap:'wrap' }}>
               <input value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)} type="email"
-                placeholder="invite@email.com" required style={{...s.input, flex:1, minWidth:200}}
+                placeholder="invite@email.com" required style={{...s.input, flex:'1 1 160px', minWidth:0}}
                 onFocus={e=>e.target.style.borderColor='var(--text)'} onBlur={e=>e.target.style.borderColor='var(--border)'} />
-              <button type="submit" disabled={inviteLoading} style={{ ...s.btnPri, padding:'10px 24px', fontSize:14, opacity:inviteLoading?0.6:1 }}>
+              <button type="submit" disabled={inviteLoading} style={{...s.btnPri, opacity:inviteLoading?0.6:1}}>
                 {inviteLoading ? 'Sending…' : '✉️ Send Invite'}
               </button>
             </form>
