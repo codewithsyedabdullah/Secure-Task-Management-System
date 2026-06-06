@@ -141,7 +141,7 @@ export default function DashboardPage() {
 
         {/* Logo */}
         <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(8,8,8,0.08)' }}>
-          <span style={{ fontFamily: "'Anton', sans-serif", fontSize: 18, color: 'var(--text)', letterSpacing: '0.5px' }}>TASK MANAGER</span>
+          <span style={{ fontFamily: "'Anton', sans-serif", fontSize: 18, color: 'var(--text)', letterSpacing: '0.5px' }}>TM</span>
         </div>
 
         {/* Nav */}
