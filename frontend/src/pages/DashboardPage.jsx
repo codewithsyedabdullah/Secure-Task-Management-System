@@ -6,6 +6,7 @@ import TaskModal from '../components/TaskModal';
 import TeamModal from '../components/TeamModal';
 import ReminderBanner from '../components/ReminderBanner';
 import { useAuth } from '../context/AuthContext';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
@@ -108,7 +109,7 @@ export default function DashboardPage() {
   ];
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: '#F5F3EE', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Inter', sans-serif" }}>
       <div style={{ textAlign: 'center' }}>
         <div style={{ width: 36, height: 36, border: '3px solid #080808', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
         <p style={{ color: '#080808', opacity: 0.4, fontSize: 14 }}>Loading…</p>
@@ -118,7 +119,7 @@ export default function DashboardPage() {
   );
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#F5F3EE', fontFamily: "'Inter', sans-serif", color: '#080808' }}>
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg)', fontFamily: "'Inter', sans-serif", color: '#080808' }}>
 
       {/* Mobile overlay */}
       {sidebarOpen && (
@@ -129,7 +130,7 @@ export default function DashboardPage() {
       {/* ── Sidebar ── */}
       <aside style={{
         width: 240, flexShrink: 0, display: 'flex', flexDirection: 'column',
-        background: '#fff', borderRight: '1px solid rgba(8,8,8,0.08)',
+        background: 'var(--sidebar)', borderRight: '1px solid var(--border)',
         position: 'fixed', top: 0, bottom: 0, left: 0, zIndex: 30,
         transform: sidebarOpen ? 'translateX(0)' : undefined,
         transition: 'transform 0.2s',
@@ -137,7 +138,7 @@ export default function DashboardPage() {
 
         {/* Logo */}
         <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(8,8,8,0.08)' }}>
-          <span style={{ fontFamily: "'Anton', sans-serif", fontSize: 18, color: '#080808', letterSpacing: '0.5px' }}>TASKMANAGER</span>
+          <span style={{ fontFamily: "'Anton', sans-serif", fontSize: 18, color: 'var(--text)', letterSpacing: '0.5px' }}>TASK MANAGER</span>
         </div>
 
         {/* Nav */}
@@ -178,8 +179,8 @@ export default function DashboardPage() {
         </nav>
 
         {/* User */}
-        <div style={{ borderTop: '1px solid rgba(8,8,8,0.08)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F5F3EE', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+        <div style={{ borderTop: '1px solid var(--border)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-fg)', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
             {user?.username?.[0]?.toUpperCase()}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -187,7 +188,7 @@ export default function DashboardPage() {
             <p style={{ fontSize: 11, opacity: 0.4, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</p>
           </div>
           <button onClick={async () => { await logout(); window.location.href = '/login'; }}
-            title="Logout" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#080808', opacity: 0.35, flexShrink: 0 }}
+            title="Logout" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text)', opacity: 0.5, flexShrink: 0 }}
             onMouseOver={e => e.currentTarget.style.opacity = '0.8'}
             onMouseOut={e => e.currentTarget.style.opacity = '0.35'}>
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -201,7 +202,7 @@ export default function DashboardPage() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', marginLeft: 240 }} className="dash-main">
 
         {/* Topbar */}
-        <header style={{ background: '#fff', borderBottom: '1px solid rgba(8,8,8,0.08)', padding: '12px 28px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+        <header style={{ background: 'var(--topbar)', borderBottom: '1px solid var(--border)', padding: '12px 28px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
           {/* Mobile hamburger */}
           <button onClick={() => setSidebarOpen(!sidebarOpen)}
             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: '#080808', display: 'none' }} className="dash-hamburger">
@@ -222,7 +223,7 @@ export default function DashboardPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks…"
-              style={{ paddingLeft: 34, paddingRight: 14, paddingTop: 8, paddingBottom: 8, fontSize: 13, border: '1.5px solid rgba(8,8,8,0.12)', borderRadius: 8, background: '#F5F3EE', color: '#080808', outline: 'none', fontFamily: 'inherit', width: 180, transition: 'border-color .15s' }}
+              style={{ paddingLeft: 34, paddingRight: 14, paddingTop: 8, paddingBottom: 8, fontSize: 13, border: '1.5px solid rgba(8,8,8,0.12)', borderRadius: 8, background: 'var(--bg)', color: 'var(--text)', outline: 'none', fontFamily: 'inherit', width: 180, transition: 'border-color .15s' }}
               onFocus={e => e.target.style.borderColor = '#080808'}
               onBlur={e => e.target.style.borderColor = 'rgba(8,8,8,0.12)'} />
           </div>
@@ -237,13 +238,14 @@ export default function DashboardPage() {
 
           {isCreatorOfAnyTeam && (
             <button onClick={() => { setEditingTask(null); setShowTaskModal(true); }}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: '#080808', color: '#F5F3EE', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: 'var(--accent)', color: 'var(--accent-fg)', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
               <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
               </svg>
               <span className="dash-btn-text">New Task</span>
             </button>
           )}
+          <ThemeToggle />
         </header>
 
         {/* Body */}
@@ -255,7 +257,7 @@ export default function DashboardPage() {
             <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.35, marginBottom: 16 }}>Overview</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }} className="stats-grid">
               {stats.map(s => (
-                <div key={s.label} style={{ background: '#fff', border: '1px solid rgba(8,8,8,0.08)', borderRadius: 12, padding: '20px 20px 16px' }}>
+                <div key={s.label} style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 20px 16px' }}>
                   <p style={{ fontSize: 22, margin: '0 0 8px', opacity: 0.7 }}>{s.icon}</p>
                   <p style={{ fontFamily: "'Anton', sans-serif", fontSize: 36, fontWeight: 400, margin: '0 0 4px', color: '#080808', lineHeight: 1 }}>{s.value}</p>
                   <p style={{ fontSize: 13, fontWeight: 600, margin: '0 0 2px', color: '#080808' }}>{s.label}</p>
@@ -275,7 +277,7 @@ export default function DashboardPage() {
                 onMouseOut={e => e.currentTarget.style.opacity = '0.5'}>+ New Team</button>
             </div>
             {teams.length === 0 ? (
-              <div style={{ background: '#fff', border: '1px solid rgba(8,8,8,0.08)', borderRadius: 12, padding: '48px 24px', textAlign: 'center' }}>
+              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, padding: '48px 24px', textAlign: 'center' }}>
                 <p style={{ fontSize: 32, margin: '0 0 12px' }}>👥</p>
                 <p style={{ fontWeight: 600, margin: '0 0 4px' }}>No teams yet</p>
                 <p style={{ fontSize: 12, opacity: 0.4, margin: 0 }}>Create a team to start collaborating</p>
@@ -284,11 +286,11 @@ export default function DashboardPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }} className="teams-grid">
                 {teams.map(team => (
                   <Link key={team.id} to={`/teams/${team.id}`}
-                    style={{ background: '#fff', border: '1px solid rgba(8,8,8,0.08)', borderRadius: 12, padding: '20px', textDecoration: 'none', color: '#080808', display: 'block', transition: 'border-color .15s' }}
-                    onMouseOver={e => e.currentTarget.style.borderColor = 'rgba(8,8,8,0.25)'}
-                    onMouseOut={e => e.currentTarget.style.borderColor = 'rgba(8,8,8,0.08)'}>
+                    style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px', textDecoration: 'none', color: 'var(--text)', display: 'block', transition: 'border-color .15s' }}
+                    onMouseOver={e => e.currentTarget.style.borderColor = 'var(--text)'}
+                    onMouseOut={e => e.currentTarget.style.borderColor = 'var(--border)'}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 8, background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F5F3EE', fontSize: 13, fontWeight: 700 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-fg)', fontSize: 13, fontWeight: 700 }}>
                         {team.name[0].toUpperCase()}
                       </div>
                       <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 100, background: team.my_role === 'creator' ? 'rgba(8,8,8,0.07)' : 'rgba(8,8,8,0.04)', color: '#080808', opacity: team.my_role === 'creator' ? 1 : 0.5 }}>
@@ -313,7 +315,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Filters */}
-            <div style={{ background: '#fff', border: '1px solid rgba(8,8,8,0.08)', borderRadius: 12, padding: '14px 18px', marginBottom: 16, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+            <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 18px', marginBottom: 16, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
               <p style={{ fontSize: 12, fontWeight: 600, opacity: 0.4, margin: 0, flexShrink: 0 }}>Filter:</p>
               {[
                 { value: filterTeam,     onChange: v => setFilterTeam(v),     options: [['', 'All Teams'],     ...teams.map(t => [t.id, t.name])] },
@@ -321,7 +323,7 @@ export default function DashboardPage() {
                 { value: filterAssignee, onChange: v => setFilterAssignee(v), options: [['', 'All Assignees'], ...allMembers.map(m => [m.id, m.username])] },
               ].map((sel, i) => (
                 <select key={i} value={sel.value} onChange={e => sel.onChange(e.target.value)}
-                  style={{ fontSize: 13, border: '1.5px solid rgba(8,8,8,0.12)', borderRadius: 8, padding: '7px 12px', background: '#F5F3EE', color: '#080808', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
+                  style={{ fontSize: 13, border: '1.5px solid rgba(8,8,8,0.12)', borderRadius: 8, padding: '7px 12px', background: 'var(--bg)', color: 'var(--text)', outline: 'none', fontFamily: 'inherit', cursor: 'pointer' }}>
                   {sel.options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                 </select>
               ))}
@@ -332,7 +334,7 @@ export default function DashboardPage() {
             </div>
 
             {tasks.length === 0 ? (
-              <div style={{ background: '#fff', border: '1px solid rgba(8,8,8,0.08)', borderRadius: 12, padding: '64px 24px', textAlign: 'center' }}>
+              <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 12, padding: '64px 24px', textAlign: 'center' }}>
                 <p style={{ fontSize: 32, margin: '0 0 12px' }}>📋</p>
                 <p style={{ fontWeight: 600, margin: '0 0 4px' }}>No tasks found</p>
                 <p style={{ fontSize: 12, opacity: 0.4, margin: 0 }}>

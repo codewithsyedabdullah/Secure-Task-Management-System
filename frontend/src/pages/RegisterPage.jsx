@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import ThemeToggle from '../components/ThemeToggle';
 import { useAuth } from '../context/AuthContext';
 import { AuthField, AuthBtn } from './LoginPage';
 
@@ -33,25 +34,26 @@ export default function RegisterPage() {
   const set = (key, val) => { setForm(p => ({...p, [key]: val})); setErrors(p => ({...p, [key]: ''})); };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F5F3EE', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: "'Inter', sans-serif", display: 'flex', flexDirection: 'column' }}>
 
       {/* Header */}
       <header style={{ padding: '20px 48px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Link to="/" style={{ fontFamily: "'Anton', sans-serif", fontSize: 22, color: '#080808', textDecoration: 'none' }}>TASKMANAGER</Link>
-        <p style={{ fontSize: 14, color: '#080808', opacity: 0.5, margin: 0 }}>
+        <Link to="/" style={{ fontFamily: "'Anton', sans-serif", fontSize: 22, color: 'var(--text)', textDecoration: 'none' }}>TASK MANAGER</Link>
+          <div style={{marginLeft:'auto'}}><ThemeToggle /></div>
+        <p style={{ fontSize: 14, color: 'var(--text)', opacity: 0.5, margin: 0 }}>
           Have an account?{' '}
-          <Link to="/login" style={{ color: '#080808', fontWeight: 600, opacity: 1 }}>Sign in</Link>
+          <Link to="/login" style={{ color: 'var(--text)', fontWeight: 600, opacity: 1 }}>Sign in</Link>
         </p>
       </header>
 
       <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', minHeight: 0 }} className="auth-grid">
 
         {/* Left panel */}
-        <div style={{ padding: '64px 56px', display: 'flex', flexDirection: 'column', justifyContent: 'center', borderRight: '1px solid rgba(8,8,8,0.08)' }} className="auth-left-panel">
-          <h1 style={{ fontFamily: "'Anton', sans-serif", fontSize: 'clamp(48px, 5vw, 72px)', fontWeight: 400, lineHeight: 0.9, margin: '0 0 28px', color: '#080808' }}>
+        <div style={{ padding: '64px 56px', display: 'flex', flexDirection: 'column', justifyContent: 'center', borderRight: '1px solid var(--border)' }} className="auth-left-panel">
+          <h1 style={{ fontFamily: "'Anton', sans-serif", fontSize: 'clamp(48px, 5vw, 72px)', fontWeight: 400, lineHeight: 0.9, margin: '0 0 28px', color: 'var(--text)' }}>
             BUILD YOUR<br />TEAM /
           </h1>
-          <p style={{ fontSize: 16, color: '#080808', opacity: 0.6, maxWidth: 360, lineHeight: 1.7, marginBottom: 40 }}>
+          <p style={{ fontSize: 16, color: 'var(--text)', opacity: 0.6, maxWidth: 360, lineHeight: 1.7, marginBottom: 40 }}>
             Create an account, set up your first team, and start shipping tasks with your crew today.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -64,7 +66,7 @@ export default function RegisterPage() {
                 <div style={{ width: 26, height: 26, borderRadius: '50%', background: s.active ? '#080808' : 'rgba(8,8,8,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: s.active ? '#F5F3EE' : 'rgba(8,8,8,0.4)' }}>{s.n}</span>
                 </div>
-                <span style={{ fontSize: 13, color: '#080808', opacity: s.active ? 1 : 0.4, fontWeight: s.active ? 600 : 400 }}>{s.text}</span>
+                <span style={{ fontSize: 13, color: 'var(--text)', opacity: s.active ? 1 : 0.4, fontWeight: s.active ? 600 : 400 }}>{s.text}</span>
               </div>
             ))}
           </div>
@@ -73,8 +75,8 @@ export default function RegisterPage() {
         {/* Right panel */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px 32px' }}>
           <div style={{ width: '100%', maxWidth: 400 }}>
-            <h2 style={{ fontFamily: "'Anton', sans-serif", fontSize: 36, fontWeight: 400, margin: '0 0 6px', color: '#080808' }}>CREATE ACCOUNT</h2>
-            <p style={{ fontSize: 14, color: '#080808', opacity: 0.5, margin: '0 0 32px' }}>Fill in the details below to get started.</p>
+            <h2 style={{ fontFamily: "'Anton', sans-serif", fontSize: 36, fontWeight: 400, margin: '0 0 6px', color: 'var(--text)' }}>CREATE ACCOUNT</h2>
+            <p style={{ fontSize: 14, color: 'var(--text)', opacity: 0.5, margin: '0 0 32px' }}>Fill in the details below to get started.</p>
 
             {serverError && (
               <div style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)', color: '#dc2626', borderRadius: 8, padding: '12px 16px', fontSize: 13, marginBottom: 24 }}>{serverError}</div>
@@ -88,9 +90,9 @@ export default function RegisterPage() {
               <AuthField id="password" label="Password" type="password" placeholder="At least 6 characters"
                 value={form.password} onChange={v => set('password', v)} error={errors.password} />
               <AuthBtn loading={loading} label="Create account" loadingLabel="Creating…" />
-              <p style={{ textAlign: 'center', fontSize: 13, color: '#080808', opacity: 0.5, margin: 0 }}>
+              <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--text)', opacity: 0.5, margin: 0 }}>
                 Already have an account?{' '}
-                <Link to="/login" style={{ color: '#080808', fontWeight: 700, opacity: 1 }}>Sign in</Link>
+                <Link to="/login" style={{ color: 'var(--text)', fontWeight: 700, opacity: 1 }}>Sign in</Link>
               </p>
             </form>
           </div>
