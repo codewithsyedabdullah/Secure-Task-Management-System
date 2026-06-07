@@ -28,7 +28,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          {/* Landing page renders immediately — no auth gate */}
+          {/* Landing always renders — no auth gate, no redirect, no flash */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />

@@ -7,11 +7,6 @@ export default function LandingPage() {
       {/* ── Header ── */}
       <header className="lp-header">
         <span className="lp-logo">TASK MANAGER</span>
-        <nav className="lp-nav">
-          {['Features', 'Teams', 'Pricing', 'FAQ'].map(l => (
-            <a key={l} href="#" className="lp-nav-link">{l}</a>
-          ))}
-        </nav>
         <div className="lp-header-cta">
           <Link to="/login" className="lp-signin">Sign In</Link>
           <Link to="/register" className="lp-getstarted">Get Started</Link>
@@ -98,7 +93,6 @@ export default function LandingPage() {
       </main>
 
       <style>{`
-        /* ── Reset / Base ── */
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         .lp-root {
@@ -109,14 +103,12 @@ export default function LandingPage() {
           overflow-x: hidden;
         }
 
-        /* ── Header ── */
         .lp-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
           padding: clamp(12px, 2vw, 20px) clamp(16px, 5vw, 48px);
           border-bottom: 1px solid rgba(8,8,8,0.08);
-          flex-wrap: wrap;
           gap: 12px;
           position: sticky;
           top: 0;
@@ -131,24 +123,6 @@ export default function LandingPage() {
           color: #080808;
           flex-shrink: 0;
         }
-
-        .lp-nav {
-          display: flex;
-          align-items: center;
-          gap: clamp(16px, 3vw, 40px);
-          flex-wrap: wrap;
-        }
-
-        .lp-nav-link {
-          font-size: clamp(13px, 1.5vw, 16px);
-          color: #080808;
-          text-decoration: none;
-          font-weight: 500;
-          opacity: 0.8;
-          transition: opacity 0.15s;
-          white-space: nowrap;
-        }
-        .lp-nav-link:hover { opacity: 0.5; }
 
         .lp-header-cta {
           display: flex;
@@ -181,7 +155,6 @@ export default function LandingPage() {
         }
         .lp-getstarted:hover { background: #333; }
 
-        /* ── Main ── */
         .lp-main {
           width: 100%;
           max-width: 1280px;
@@ -189,7 +162,6 @@ export default function LandingPage() {
           padding: clamp(32px, 6vw, 80px) clamp(16px, 5vw, 48px) clamp(32px, 5vw, 64px);
         }
 
-        /* ── Row layout ── */
         .lp-row {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -200,7 +172,6 @@ export default function LandingPage() {
         .lp-row1 { margin-bottom: clamp(32px, 5vw, 80px); }
         .lp-row2 { margin-bottom: clamp(32px, 5vw, 48px); }
 
-        /* ── Hero Left ── */
         .lp-headline {
           font-family: 'Anton', sans-serif;
           font-size: clamp(36px, 6vw, 88px);
@@ -250,7 +221,6 @@ export default function LandingPage() {
           flex-shrink: 0;
         }
 
-        /* ── Hero Right ── */
         .lp-hero-right { text-align: right; }
 
         .lp-stat-heading {
@@ -271,14 +241,12 @@ export default function LandingPage() {
           line-height: 1.7;
         }
 
-        /* ── Divider ── */
         .lp-divider {
           border: none;
           border-top: 1px solid rgba(8,8,8,0.1);
           margin-bottom: clamp(24px, 4vw, 48px);
         }
 
-        /* ── Mid Row ── */
         .lp-mid-text {
           font-size: clamp(12px, 1.2vw, 14px);
           color: #080808;
@@ -323,7 +291,6 @@ export default function LandingPage() {
           line-height: 1.75;
         }
 
-        /* ── Feature Cards ── */
         .lp-features {
           display: grid;
           grid-template-columns: repeat(6, 1fr);
@@ -355,41 +322,25 @@ export default function LandingPage() {
           line-height: 1.3;
         }
 
-        /* ── Responsive Breakpoints ── */
-
-        /* Tablet: 900px and below */
         @media (max-width: 900px) {
-          .lp-row {
-            grid-template-columns: 1fr;
-            gap: 28px;
-          }
+          .lp-row { grid-template-columns: 1fr; gap: 28px; }
           .lp-hero-right { text-align: left; }
           .lp-stat-sub { margin-left: 0; }
           .lp-features { grid-template-columns: repeat(3, 1fr); }
         }
-
-        /* Mobile: 600px and below */
         @media (max-width: 600px) {
-          .lp-header { flex-wrap: wrap; gap: 8px; }
-          .lp-nav { display: none; }
           .lp-features { grid-template-columns: repeat(3, 1fr); }
           .lp-headline { line-height: 0.92; }
         }
-
-        /* Very small: 380px and below */
         @media (max-width: 380px) {
           .lp-features { grid-template-columns: repeat(2, 1fr); }
           .lp-header-cta { gap: 4px; }
         }
-
-        /* Large screens: 1400px+ */
         @media (min-width: 1400px) {
           .lp-headline { font-size: 96px; }
           .lp-stat-heading { font-size: 60px; }
         }
-
-        /* Zoom-safe: use em-based media queries too */
-        @media (max-width: 56.25em) {  /* ~900px */
+        @media (max-width: 56.25em) {
           .lp-row { grid-template-columns: 1fr; }
         }
       `}</style>
