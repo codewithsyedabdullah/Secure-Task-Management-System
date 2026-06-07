@@ -6,7 +6,7 @@ export default function LandingPage() {
 
       {/* ── Header ── */}
       <header className="lp-header">
-        <span className="lp-logo">TASKMANAGER</span>
+        <span className="lp-logo">TASK MANAGER</span>
         <nav className="lp-nav">
           {['Features', 'Teams', 'Pricing', 'FAQ'].map(l => (
             <a key={l} href="#" className="lp-nav-link">{l}</a>
