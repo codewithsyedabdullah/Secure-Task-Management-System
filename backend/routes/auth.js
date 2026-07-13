@@ -2,14 +2,13 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const passport = require('../config/passport');
-const pool = require('../db/pool');
+const { sb } = require('../db/supabase');
 const { body, validationResult } = require('express-validator');
 
-// POST /auth/register
 router.post(
   '/register',
   [
-    body('username').trim().isLength({ min: 3, max: 50 }).withMessage('Username must be 3–50 characters.'),
+    body('username').trim().isLength({ min: 3, max: 50 }).withMessage('Username must be 3-50 characters.'),
     body('email').isEmail().normalizeEmail().withMessage('Valid email required.'),
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters.'),
   ],
@@ -19,15 +18,14 @@ router.post(
 
     const { username, email, password } = req.body;
     try {
-      const existing = await pool.query('SELECT id FROM users WHERE email = $1 OR username = $2', [email, username]);
-      if (existing.rows.length > 0) return res.status(409).json({ error: 'Email or username already taken.' });
+      const existing = await sb('users').select('id', { email });
+      if (existing.length > 0) return res.status(409).json({ error: 'Email or username already taken.' });
+      const existingU = await sb('users').select('id', { username });
+      if (existingU.length > 0) return res.status(409).json({ error: 'Email or username already taken.' });
 
       const password_hash = await bcrypt.hash(password, 12);
-      const result = await pool.query(
-        'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email, created_at',
-        [username, email, password_hash]
-      );
-      const user = result.rows[0];
+      const user = await sb('users').insert({ username, email, password_hash });
+      if (user && user.error) return res.status(500).json({ error: user.error });
 
       req.login(user, (err) => {
         if (err) return res.status(500).json({ error: 'Login after register failed.' });
@@ -40,7 +38,6 @@ router.post(
   }
 );
 
-// POST /auth/login
 router.post(
   '/login',
   [
@@ -50,7 +47,6 @@ router.post(
   (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
-
     passport.authenticate('local', (err, user, info) => {
       if (err) return next(err);
       if (!user) return res.status(401).json({ error: info?.message || 'Invalid credentials.' });
@@ -63,7 +59,6 @@ router.post(
   }
 );
 
-// POST /auth/logout
 router.post('/logout', (req, res) => {
   req.logout((err) => {
     if (err) return res.status(500).json({ error: 'Logout failed.' });
@@ -71,7 +66,6 @@ router.post('/logout', (req, res) => {
   });
 });
 
-// GET /auth/me
 router.get('/me', (req, res) => {
   if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated.' });
   res.json({ user: req.user });

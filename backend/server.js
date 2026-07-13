@@ -4,17 +4,6 @@ const express = require('express');
 const session = require('express-session');
 const cors = require('cors');
 const passport = require('./config/passport');
-const pool = require('./db/pool');
-
-let sessionStore;
-if (process.env.NODE_ENV === 'production') {
-  const pgSession = require('connect-pg-simple')(session);
-  sessionStore = new pgSession({ pool, tableName: 'session', createTableIfNotExist: true });
-} else {
-  sessionStore = new session.MemoryStore();
-}
-
-const { initSchema } = require('./db/schema');
 
 const authRoutes = require('./routes/auth');
 const teamsRoutes = require('./routes/teams');
@@ -34,7 +23,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(session({
-  store: sessionStore,
   secret: process.env.SESSION_SECRET || 'dev_secret_change_me',
   resave: false,
   saveUninitialized: false,
@@ -48,19 +36,6 @@ app.use(session({
 
 app.use(passport.initialize());
 app.use(passport.session());
-
-// Auto-init schema — store promise so middleware can wait for it
-const schemaReady = initSchema();
-schemaReady.catch(err => console.error('Schema init failed:', err));
-
-// Middleware that ensures schema is initialized before handling DB requests
-app.use((req, res, next) => {
-  schemaReady.then(() => next()).catch(err => {
-    console.error('Schema init failed:', err?.message || err);
-    console.error('Full error:', err);
-    res.status(500).json({ error: 'Database initialization failed', detail: err?.message || String(err) });
-  });
-});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/teams', teamsRoutes);

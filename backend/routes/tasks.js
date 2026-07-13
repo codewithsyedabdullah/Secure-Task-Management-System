@@ -1,114 +1,80 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../db/pool');
+const { sb } = require('../db/supabase');
 const { isAuthenticated } = require('../middleware/auth');
 const { body, param, validationResult } = require('express-validator');
 
 router.use(isAuthenticated);
 
-// Helper: fetch a task with assignees array (including per-assignee status) attached
 const enrichTask = async (taskId, userId) => {
-  const result = await pool.query(
-    `SELECT t.*, teams.name AS team_name, teams.color AS team_color,
-            creator.username AS creator_name,
-            tm.role AS my_team_role
-     FROM tasks t
-     JOIN teams ON t.team_id = teams.id
-     JOIN team_members tm ON t.team_id = tm.team_id AND tm.user_id = $2
-     LEFT JOIN users creator ON t.created_by = creator.id
-     WHERE t.id = $1`,
-    [taskId, userId]
-  );
-  if (!result.rows[0]) return null;
-  const task = result.rows[0];
-  const aRes = await pool.query(
-    `SELECT u.id, u.username, COALESCE(tas.status, 'todo') AS personal_status
-     FROM task_assignees ta
-     JOIN users u ON u.id = ta.user_id
-     LEFT JOIN task_assignee_statuses tas ON tas.task_id = ta.task_id AND tas.user_id = ta.user_id
-     WHERE ta.task_id = $1`,
-    [taskId]
-  );
-  task.assignees = aRes.rows;
-  task.assignee_name = aRes.rows.map(a => a.username).join(', ') || null;
-  return task;
+  const task = await sb('tasks').get('*', { id: String(taskId) });
+  if (!task) return null;
+  const team = await sb('teams').get('name,color', { id: String(task.team_id) });
+  const membership = await sb('team_members').get('role', { team_id: String(task.team_id), user_id: String(userId) });
+  if (!membership) return null;
+  const creator = await sb('users').get('username', { id: String(task.created_by) });
+  const assigneeRows = await sb('task_assignees').select('user_id', { task_id: String(taskId) });
+  const userIds = assigneeRows.map(a => a.user_id);
+  let assignees = [];
+  if (userIds.length) {
+    const users = await sb('users').in('id,username', 'id', userIds);
+    const statuses = await sb('task_assignee_statuses').in('user_id,status', 'task_id', [taskId]);
+    const statusMap = {};
+    statuses.forEach(s => statusMap[s.user_id] = s.status);
+    assignees = users.map(u => ({ id: u.id, username: u.username, personal_status: statusMap[u.id] || 'todo' }));
+  }
+  return {
+    ...task, team_name: team ? team.name : null, team_color: team ? team.color : null,
+    creator_name: creator ? creator.username : null, my_team_role: membership.role,
+    assignees, assignee_name: assignees.map(a => a.username).join(', ') || null,
+  };
 };
 
-// GET /tasks
 router.get('/', async (req, res) => {
   try {
     const { team_id, assigned_to, status, search } = req.query;
-    let queryStr = `
-      SELECT DISTINCT t.id, t.title, t.description, t.status, t.priority, t.due_date,
-             t.team_id, t.assigned_to, t.created_by, t.created_at, t.updated_at,
-             teams.name AS team_name, teams.color AS team_color,
-             creator.username AS creator_name,
-             tm.role AS my_team_role
-      FROM tasks t
-      JOIN teams ON t.team_id = teams.id
-      JOIN team_members tm ON t.team_id = tm.team_id AND tm.user_id = $1
-      LEFT JOIN users creator ON t.created_by = creator.id
-      LEFT JOIN task_assignees ta_f ON ta_f.task_id = t.id
-      WHERE 1=1
-    `;
-    const params = [req.user.id];
-    let idx = 2;
-    if (team_id)     { queryStr += ` AND t.team_id = $${idx++}`;       params.push(team_id); }
-    if (assigned_to) { queryStr += ` AND ta_f.user_id = $${idx++}`;    params.push(assigned_to); }
-    if (status)      { queryStr += ` AND t.status = $${idx++}`;         params.push(status); }
-    if (search)      { queryStr += ` AND (t.title ILIKE $${idx} OR t.description ILIKE $${idx++})`; params.push(`%${search}%`); }
-    queryStr += ' ORDER BY t.created_at DESC';
-
-    const result = await pool.query(queryStr, params);
-    const taskIds = result.rows.map(r => r.id);
-    let assigneesMap = {};
-    if (taskIds.length > 0) {
-      const aResult = await pool.query(
-        `SELECT ta.task_id, u.id, u.username, COALESCE(tas.status, 'todo') AS personal_status
-         FROM task_assignees ta
-         JOIN users u ON u.id = ta.user_id
-         LEFT JOIN task_assignee_statuses tas ON tas.task_id = ta.task_id AND tas.user_id = ta.user_id
-         WHERE ta.task_id = ANY($1)`,
-        [taskIds]
-      );
-      aResult.rows.forEach(r => {
-        if (!assigneesMap[r.task_id]) assigneesMap[r.task_id] = [];
-        assigneesMap[r.task_id].push({ id: r.id, username: r.username, personal_status: r.personal_status });
-      });
-    }
-    const rows = result.rows.map(t => ({
-      ...t,
-      assignees: assigneesMap[t.id] || [],
-      assignee_name: (assigneesMap[t.id] || []).map(a => a.username).join(', ') || null,
-    }));
-    res.json(rows);
+    const memberships = await sb('team_members').select('team_id', { user_id: String(req.user.id) });
+    const teamIds = memberships.map(m => m.team_id);
+    if (!teamIds.length) return res.json([]);
+    let filteredIds = teamIds;
+    if (team_id) filteredIds = filteredIds.filter(id => String(id) === String(team_id));
+    if (!filteredIds.length) return res.json([]);
+    let tasks = (await sb('task_assignee_statuses').in('*', 'task_id', filteredIds)).length
+      ? await sb('tasks').in('*', 'team_id', filteredIds)
+      : await Promise.all(filteredIds.map(tid => sb('tasks').select('*', { team_id: String(tid) }).then(r => r))).then(arrays => arrays.flat());
+    tasks = tasks.filter(Boolean);
+    if (status) tasks = tasks.filter(t => t.status === status);
+    if (search) tasks = tasks.filter(t => (t.title && t.title.toLowerCase().includes(search.toLowerCase())) || (t.description && t.description.toLowerCase().includes(search.toLowerCase())));
+    const tasksWithDetails = await Promise.all(tasks.map(t => enrichTask(t.id, req.user.id)));
+    res.json(tasksWithDetails.filter(Boolean));
   } catch (err) {
     console.error('Get tasks error:', err);
     res.status(500).json({ error: 'Failed to fetch tasks.' });
   }
 });
 
-// GET /tasks/reminders
 router.get('/reminders', async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT DISTINCT t.id, t.title, t.due_date, t.status, t.priority, teams.name AS team_name
-       FROM tasks t
-       JOIN teams ON t.team_id = teams.id
-       LEFT JOIN task_assignees ta ON ta.task_id = t.id
-       WHERE t.due_date IS NOT NULL AND t.status != 'done'
-         AND t.due_date <= CURRENT_DATE + INTERVAL '1 day'
-         AND (ta.user_id = $1 OR t.created_by = $1)
-       ORDER BY t.due_date ASC LIMIT 20`,
-      [req.user.id]
-    );
-    res.json(result.rows);
+    const memberships = await sb('team_members').select('team_id', { user_id: String(req.user.id) });
+    const teamIds = memberships.map(m => m.team_id);
+    if (!teamIds.length) return res.json([]);
+    const tasks = await sb('tasks').in('*', 'team_id', teamIds);
+    const now = new Date();
+    const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
+    const reminders = tasks.filter(t => t.due_date && t.status !== 'done' && new Date(t.due_date) <= tomorrow);
+    const teamMap = {};
+    for (const t of reminders) {
+      if (!teamMap[t.team_id]) {
+        const team = await sb('teams').get('name', { id: String(t.team_id) });
+        teamMap[t.team_id] = team ? team.name : null;
+      }
+    }
+    res.json(reminders.map(t => ({ id: t.id, title: t.title, due_date: t.due_date, status: t.status, priority: t.priority, team_name: teamMap[t.team_id] })));
   } catch (err) {
     res.status(500).json({ error: 'Failed to fetch reminders.' });
   }
 });
 
-// POST /tasks — team creator only
 router.post('/', [
   body('title').trim().isLength({ min: 1, max: 255 }).withMessage('Title is required.'),
   body('description').optional().trim().isLength({ max: 2000 }),
@@ -120,33 +86,21 @@ router.post('/', [
 ], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
-
   const { title, description, team_id, assignees = [], priority, due_date } = req.body;
   try {
-    const roleCheck = await pool.query(
-      'SELECT role FROM team_members WHERE team_id = $1 AND user_id = $2',
-      [team_id, req.user.id]
-    );
-    if (!roleCheck.rows.length) return res.status(403).json({ error: 'You are not a member of this team.' });
-    if (roleCheck.rows[0].role !== 'creator') return res.status(403).json({ error: 'Only the team creator can create tasks.' });
-
+    const roleCheck = await sb('team_members').get('role', { team_id: String(team_id), user_id: String(req.user.id) });
+    if (!roleCheck) return res.status(403).json({ error: 'You are not a member of this team.' });
+    if (roleCheck.role !== 'creator') return res.status(403).json({ error: 'Only the team creator can create tasks.' });
     for (const uid of assignees) {
-      const check = await pool.query('SELECT id FROM team_members WHERE team_id=$1 AND user_id=$2', [team_id, uid]);
-      if (!check.rows.length) return res.status(400).json({ error: `User ${uid} is not a team member.` });
+      const check = await sb('team_members').get('id', { team_id: String(team_id), user_id: String(uid) });
+      if (!check) return res.status(400).json({ error: `User ${uid} is not a team member.` });
     }
-
-    const result = await pool.query(
-      `INSERT INTO tasks (title, description, team_id, created_by, status, priority, due_date)
-       VALUES ($1, $2, $3, $4, 'todo', $5, $6) RETURNING *`,
-      [title, description || null, team_id, req.user.id, priority || 'medium', due_date || null]
-    );
-    const taskId = result.rows[0].id;
-
+    const task = await sb('tasks').insert({ title, description: description || null, team_id, created_by: req.user.id, status: 'todo', priority: priority || 'medium', due_date: due_date || null });
+    if (task && task.error) return res.status(500).json({ error: task.error });
     for (const uid of assignees) {
-      await pool.query('INSERT INTO task_assignees (task_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [taskId, uid]);
+      await sb('task_assignees').insert({ task_id: task.id, user_id: uid }).catch(() => {});
     }
-
-    const enriched = await enrichTask(taskId, req.user.id);
+    const enriched = await enrichTask(task.id, req.user.id);
     res.status(201).json(enriched);
   } catch (err) {
     console.error('Create task error:', err);
@@ -154,7 +108,6 @@ router.post('/', [
   }
 });
 
-// GET /tasks/:id
 router.get('/:id', [param('id').isInt()], async (req, res) => {
   try {
     const task = await enrichTask(req.params.id, req.user.id);
@@ -165,7 +118,6 @@ router.get('/:id', [param('id').isInt()], async (req, res) => {
   }
 });
 
-// PUT /tasks/:id/status — each assignee updates only their own personal status
 router.put('/:id/status', [
   param('id').isInt(),
   body('status').isIn(['todo', 'in_progress', 'done', 'need_help', 'need_more_time']).withMessage('Invalid status.'),
@@ -173,69 +125,39 @@ router.put('/:id/status', [
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
   try {
-    const taskResult = await pool.query(
-      `SELECT t.*, tm.role FROM tasks t
-       JOIN team_members tm ON t.team_id = tm.team_id AND tm.user_id = $2
-       WHERE t.id = $1`,
-      [req.params.id, req.user.id]
-    );
-    if (!taskResult.rows.length) return res.status(404).json({ error: 'Task not found.' });
-    const task = taskResult.rows[0];
-
-    const isAssigneeRes = await pool.query(
-      'SELECT 1 FROM task_assignees WHERE task_id=$1 AND user_id=$2',
-      [req.params.id, req.user.id]
-    );
-    const isAssignee = isAssigneeRes.rows.length > 0;
-
-    if (!isAssignee && task.role !== 'creator') {
-      return res.status(403).json({ error: 'Only assignees or the team creator can update the status.' });
-    }
-
-    // Save personal status for this assignee
+    const task = await sb('tasks').get('*', { id: String(req.params.id) });
+    if (!task) return res.status(404).json({ error: 'Task not found.' });
+    const membership = await sb('team_members').get('role', { team_id: String(task.team_id), user_id: String(req.user.id) });
+    if (!membership) return res.status(404).json({ error: 'Task not found.' });
+    const isAssignee = await sb('task_assignees').get('id', { task_id: String(req.params.id), user_id: String(req.user.id) });
+    if (!isAssignee && membership.role !== 'creator') return res.status(403).json({ error: 'Only assignees or the team creator can update the status.' });
     if (isAssignee) {
-      await pool.query(
-        `INSERT INTO task_assignee_statuses (task_id, user_id, status, updated_at)
-         VALUES ($1, $2, $3, NOW())
-         ON CONFLICT (task_id, user_id) DO UPDATE SET status = $3, updated_at = NOW()`,
-        [req.params.id, req.user.id, req.body.status]
-      );
+      await sb('task_assignee_statuses').update({ status: req.body.status, updated_at: new Date().toISOString() }, { task_id: String(req.params.id), user_id: String(req.user.id) });
     }
-
-    // Compute overall task status from all assignees' personal statuses
-    const allAssigneesRes = await pool.query(
-      'SELECT user_id FROM task_assignees WHERE task_id=$1',
-      [req.params.id]
-    );
-    const allAssignees = allAssigneesRes.rows;
-
+    const allAssignees = await sb('task_assignees').select('user_id', { task_id: String(req.params.id) });
     let overallStatus = req.body.status;
     if (allAssignees.length > 1) {
-      const statusesRes = await pool.query(
-        'SELECT status FROM task_assignee_statuses WHERE task_id=$1',
-        [req.params.id]
-      );
-      const savedStatuses = statusesRes.rows.map(r => r.status);
-      const allDone = savedStatuses.length === allAssignees.length && savedStatuses.every(s => s === 'done');
-      const anyNeedHelp = savedStatuses.includes('need_help');
-      const anyNeedMoreTime = savedStatuses.includes('need_more_time');
-      const anyInProgress = savedStatuses.includes('in_progress');
+      const savedStatuses = await sb('task_assignee_statuses').select('status', { task_id: String(req.params.id) });
+      const savedArr = savedStatuses.map(r => r.status);
+      const allDone = savedArr.length === allAssignees.length && savedArr.every(s => s === 'done');
+      const anyNeedHelp = savedArr.includes('need_help');
+      const anyNeedMoreTime = savedArr.includes('need_more_time');
+      const anyInProgress = savedArr.includes('in_progress');
       if (allDone) overallStatus = 'done';
       else if (anyNeedHelp) overallStatus = 'need_help';
       else if (anyNeedMoreTime) overallStatus = 'need_more_time';
       else if (anyInProgress) overallStatus = 'in_progress';
       else overallStatus = 'todo';
     }
-
-    await pool.query('UPDATE tasks SET status=$1, updated_at=NOW() WHERE id=$2', [overallStatus, req.params.id]);
+    await sb('tasks').update({ status: overallStatus, updated_at: new Date().toISOString() }, { id: String(req.params.id) });
     const enriched = await enrichTask(req.params.id, req.user.id);
     res.json(enriched);
   } catch (err) {
+    console.error('Update status error:', err);
     res.status(500).json({ error: 'Failed to update status.' });
   }
 });
 
-// PUT /tasks/:id — full update, team creator only
 router.put('/:id', [
   param('id').isInt(),
   body('title').optional().trim().isLength({ min: 1, max: 255 }),
@@ -249,42 +171,28 @@ router.put('/:id', [
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
   try {
-    const taskResult = await pool.query(
-      `SELECT t.*, tm.role FROM tasks t
-       JOIN team_members tm ON t.team_id = tm.team_id AND tm.user_id = $2
-       WHERE t.id = $1`,
-      [req.params.id, req.user.id]
-    );
-    if (!taskResult.rows.length) return res.status(404).json({ error: 'Task not found.' });
-    const task = taskResult.rows[0];
-    if (task.role !== 'creator') return res.status(403).json({ error: 'Only the team creator can edit tasks.' });
-
+    const task = await sb('tasks').get('*', { id: String(req.params.id) });
+    if (!task) return res.status(404).json({ error: 'Task not found.' });
+    const membership = await sb('team_members').get('role', { team_id: String(task.team_id), user_id: String(req.user.id) });
+    if (!membership) return res.status(404).json({ error: 'Task not found.' });
+    if (membership.role !== 'creator') return res.status(403).json({ error: 'Only the team creator can edit tasks.' });
     const { title, description, assignees, status, priority, due_date } = req.body;
-    await pool.query(
-      `UPDATE tasks SET
-         title = COALESCE($1, title),
-         description = COALESCE($2, description),
-         status = COALESCE($3, status),
-         priority = COALESCE($4, priority),
-         due_date = $5,
-         updated_at = NOW()
-       WHERE id = $6`,
-      [title || task.title, description !== undefined ? description : task.description,
-       status || task.status, priority || task.priority,
-       due_date !== undefined ? due_date : task.due_date, req.params.id]
-    );
-
+    await sb('tasks').update({
+      title: title || task.title,
+      description: description !== undefined ? description : task.description,
+      status: status || task.status,
+      priority: priority || task.priority,
+      due_date: due_date !== undefined ? due_date : task.due_date,
+      updated_at: new Date().toISOString(),
+    }, { id: String(req.params.id) });
     if (assignees !== undefined) {
-      await pool.query('DELETE FROM task_assignees WHERE task_id=$1', [req.params.id]);
-      await pool.query('DELETE FROM task_assignee_statuses WHERE task_id=$1', [req.params.id]);
+      await sb('task_assignees').delete({ task_id: String(req.params.id) });
+      await sb('task_assignee_statuses').delete({ task_id: String(req.params.id) });
       for (const uid of assignees) {
-        const check = await pool.query('SELECT id FROM team_members WHERE team_id=$1 AND user_id=$2', [task.team_id, uid]);
-        if (check.rows.length) {
-          await pool.query('INSERT INTO task_assignees (task_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [req.params.id, uid]);
-        }
+        const check = await sb('team_members').get('id', { team_id: String(task.team_id), user_id: String(uid) });
+        if (check) await sb('task_assignees').insert({ task_id: parseInt(req.params.id), user_id: uid }).catch(() => {});
       }
     }
-
     const enriched = await enrichTask(req.params.id, req.user.id);
     res.json(enriched);
   } catch (err) {
@@ -293,18 +201,13 @@ router.put('/:id', [
   }
 });
 
-// DELETE /tasks/:id — team creator only
 router.delete('/:id', [param('id').isInt()], async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT t.*, tm.role FROM tasks t
-       JOIN team_members tm ON t.team_id = tm.team_id AND tm.user_id = $2
-       WHERE t.id = $1`,
-      [req.params.id, req.user.id]
-    );
-    if (!result.rows.length) return res.status(404).json({ error: 'Task not found.' });
-    if (result.rows[0].role !== 'creator') return res.status(403).json({ error: 'Only the team creator can delete tasks.' });
-    await pool.query('DELETE FROM tasks WHERE id=$1', [req.params.id]);
+    const task = await sb('tasks').get('*', { id: String(req.params.id) });
+    if (!task) return res.status(404).json({ error: 'Task not found.' });
+    const membership = await sb('team_members').get('role', { team_id: String(task.team_id), user_id: String(req.user.id) });
+    if (!membership || membership.role !== 'creator') return res.status(403).json({ error: 'Only the team creator can delete tasks.' });
+    await sb('tasks').delete({ id: String(req.params.id) });
     res.json({ message: 'Task deleted successfully.' });
   } catch (err) {
     res.status(500).json({ error: 'Failed to delete task.' });
