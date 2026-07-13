@@ -66,7 +66,7 @@ router.post(
       await client.query('COMMIT');
       res.status(201).json(team);
     } catch (err) {
-      await client.query('ROLLBACK');
+      if (client) await client.query('ROLLBACK');
       console.error('Create team error:', err);
       res.status(500).json({ error: 'Failed to create team.' });
     } finally {
