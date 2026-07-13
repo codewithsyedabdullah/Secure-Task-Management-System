@@ -24,12 +24,13 @@ router.post(
       if (existingU.length > 0) return res.status(409).json({ error: 'Email or username already taken.' });
 
       const password_hash = await bcrypt.hash(password, 12);
-      const user = await sb('users').insert({ username, email, password_hash });
-      if (user && user.error) return res.status(500).json({ error: user.error });
+      const u = await sb('users').insert({ username, email, password_hash });
+      if (u && u.error) return res.status(500).json({ error: u.error });
+      const { password_hash: _, ...safeUser } = u;
 
-      req.login(user, (err) => {
+      req.login(safeUser, (err) => {
         if (err) return res.status(500).json({ error: 'Login after register failed.' });
-        res.status(201).json({ message: 'Registered successfully.', user });
+        res.status(201).json({ message: 'Registered successfully.', user: safeUser });
       });
     } catch (err) {
       console.error('Register error:', err);
