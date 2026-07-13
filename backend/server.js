@@ -55,8 +55,9 @@ schemaReady.catch(err => console.error('Schema init failed:', err));
 // Middleware that ensures schema is initialized before handling DB requests
 app.use((req, res, next) => {
   schemaReady.then(() => next()).catch(err => {
-    console.error('Schema init failed:', err);
-    res.status(500).json({ error: 'Database initialization failed' });
+    console.error('Schema init failed:', err?.message || err);
+    console.error('Full error:', err);
+    res.status(500).json({ error: 'Database initialization failed', detail: err?.message || String(err) });
   });
 });
 
