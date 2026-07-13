@@ -46,11 +46,11 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.use('/auth', authRoutes);
-app.use('/teams', teamsRoutes);
-app.use('/tasks', tasksRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/teams', teamsRoutes);
+app.use('/api/tasks', tasksRoutes);
 
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
 
 app.use((req, res) => res.status(404).json({ error: 'Route not found.' }));
 
