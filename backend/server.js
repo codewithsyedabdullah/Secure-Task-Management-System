@@ -8,10 +8,12 @@ const pool = require('./db/pool');
 let sessionStore;
 if (process.env.NODE_ENV === 'production') {
   const pgSession = require('connect-pg-simple')(session);
-  sessionStore = new pgSession({ pool, tableName: 'session' });
+  sessionStore = new pgSession({ pool, tableName: 'session', createTableIfNotExist: true });
 } else {
   sessionStore = new session.MemoryStore();
 }
+
+const { initSchema } = require('./db/schema');
 
 const authRoutes = require('./routes/auth');
 const teamsRoutes = require('./routes/teams');
@@ -20,7 +22,7 @@ const tasksRoutes = require('./routes/tasks');
 const app = express();
 
 app.use(cors({
-  origin: 'https://secure-task-management-system.vercel.app',
+  origin: process.env.FRONTEND_URL || 'https://secure-task-management-system.vercel.app',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type'],
@@ -51,6 +53,9 @@ app.use('/api/teams', teamsRoutes);
 app.use('/api/tasks', tasksRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+
+// Auto-init schema (idempotent) — runs on every cold start for Vercel
+initSchema().catch(err => console.error('Schema init failed:', err));
 
 app.use((req, res) => res.status(404).json({ error: 'Route not found.' }));
 
