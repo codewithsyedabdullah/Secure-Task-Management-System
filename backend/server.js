@@ -48,14 +48,23 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Auto-init schema — store promise so middleware can wait for it
+const schemaReady = initSchema();
+schemaReady.catch(err => console.error('Schema init failed:', err));
+
+// Middleware that ensures schema is initialized before handling DB requests
+app.use((req, res, next) => {
+  schemaReady.then(() => next()).catch(err => {
+    console.error('Schema init failed:', err);
+    res.status(500).json({ error: 'Database initialization failed' });
+  });
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/teams', teamsRoutes);
 app.use('/api/tasks', tasksRoutes);
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
-
-// Auto-init schema (idempotent) — runs on every cold start for Vercel
-initSchema().catch(err => console.error('Schema init failed:', err));
 
 app.use((req, res) => res.status(404).json({ error: 'Route not found.' }));
 
