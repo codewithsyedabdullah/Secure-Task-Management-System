@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: secure-task-backend
+    runtime: node
+    repo: https://github.com/codewithsyedabdullah/Secure-Task-Management-System
+    plan: free
+    region: oregon
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && node server.js
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: NODE_ENV
+        value: production
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://secure-task-management-system.vercel.app
+      - key: DATABASE_URL
+        fromDatabase:
+          name: secure-task-db
+          property: connectionString
+
+databases:
+  - name: secure-task-db
+    plan: free
+    region: oregon
+    postgresMajorVersion: 16
