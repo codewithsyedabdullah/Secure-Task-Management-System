@@ -49,8 +49,9 @@ router.post(
     if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
     const { name, description } = req.body;
-    const client = await pool.connect();
+    let client;
     try {
+      client = await pool.connect();
       await client.query('BEGIN');
       const teamResult = await client.query(
         'INSERT INTO teams (name, description, created_by, color) VALUES ($1, $2, $3, $4) RETURNING *',
@@ -69,7 +70,7 @@ router.post(
       console.error('Create team error:', err);
       res.status(500).json({ error: 'Failed to create team.' });
     } finally {
-      client.release();
+      if (client) client.release();
     }
   }
 );
