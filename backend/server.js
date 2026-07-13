@@ -5,7 +5,6 @@ const cors = require('cors');
 const passport = require('./config/passport');
 const pool = require('./db/pool');
 
-// Session store: PostgreSQL in production, memory in dev
 let sessionStore;
 if (process.env.NODE_ENV === 'production') {
   const pgSession = require('connect-pg-simple')(session);
@@ -20,7 +19,6 @@ const tasksRoutes = require('./routes/tasks');
 
 const app = express();
 
-// ─── Middleware ────────────────────────────────────────────────
 app.use(cors({
   origin: 'https://secure-task-management-system.vercel.app',
   credentials: true,
@@ -41,34 +39,31 @@ app.use(session({
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax',
-    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+    maxAge: 1000 * 60 * 60 * 24 * 7,
   },
 }));
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-// ─── Routes ───────────────────────────────────────────────────
 app.use('/auth', authRoutes);
 app.use('/teams', teamsRoutes);
 app.use('/tasks', tasksRoutes);
 
-// Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-// 404 handler
 app.use((req, res) => res.status(404).json({ error: 'Route not found.' }));
 
-// Global error handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Internal server error.' });
 });
 
-// ─── Start ────────────────────────────────────────────────────
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`);
-});
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log('Server running on port ' + PORT + ' [' + (process.env.NODE_ENV || 'development') + ']');
+  });
+}
 
 module.exports = app;
