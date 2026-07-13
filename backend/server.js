@@ -4,6 +4,7 @@ const express = require('express');
 const session = require('express-session');
 const cors = require('cors');
 const passport = require('./config/passport');
+const SupabaseSessionStore = require('./db/sessionStore');
 
 const authRoutes = require('./routes/auth');
 const teamsRoutes = require('./routes/teams');
@@ -23,6 +24,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(session({
+  store: new SupabaseSessionStore(),
   secret: process.env.SESSION_SECRET || 'dev_secret_change_me',
   resave: false,
   saveUninitialized: false,
