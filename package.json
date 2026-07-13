@@ -1,0 +1,9 @@
+{
+  "name": "secure-task-management-system",
+  "private": true,
+  "scripts": {
+    "dev": "cd backend && npm run dev",
+    "build": "cd frontend && npm install && npm run build",
+    "start": "cd backend && node server.js"
+  }
+}
